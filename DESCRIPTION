@@ -1,0 +1,49 @@
+Package: kalmix
+Type: Package
+Title: Mixture Kalman Filtering for Mean-Reverting Spreads
+Version: 0.0.0.9000
+Authors@R: c(
+    person(given = "Max",
+           family = "Moldovan",
+           role = c("aut", "cre"),
+           email = "max.moldovan@gmail.com",
+           comment = c(ORCID = "0000-0001-9680-8474")),
+    person(given = "Johannes",
+           family = "van der Hoek",
+           role = "aut",
+           comment = "Co-developer; foundational spread model in Elliott, van der Hoek & Malcolm (2005)."),
+    person(given = "Robert J.",
+           family = "Elliott",
+           role = "ctb",
+           comment = "Foundational theory in Elliott, van der Hoek & Malcolm (2005)."),
+    person(given = "William P.",
+           family = "Malcolm",
+           role = "ctb",
+           comment = "Foundational theory in Elliott, van der Hoek & Malcolm (2005)."))
+Description: Gaussian-mixture state-space methods for mean-reverting spread
+    models in pairs trading and statistical arbitrage. Estimates the
+    Ornstein-Uhlenbeck dynamics of a cointegration spread and provides the
+    interface for filtering a regime-switching spread state through a
+    finite Gaussian-mixture Kalman recursion. Builds on the scalar
+    mean-reverting spread model of Elliott, van der Hoek and Malcolm
+    (2005) <doi:10.1080/14697680500149370>; the mixture Kalman engine is
+    supplied by the optional 'proxymix' package.
+License: file LICENSE
+Encoding: UTF-8
+Language: en-AU
+Depends:
+    R (>= 4.3)
+Imports:
+    S7,
+    stats,
+    cli
+Suggests:
+    proxymix,
+    testthat (>= 3.0.0),
+    withr,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3

@@ -1,0 +1,63 @@
+---
+title: "Getting started with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`kalmix` models the mean-reverting spread that underlies a pairs trade. The
+standalone core does two things: it builds a cointegration spread from two
+price series, and it fits the spread's Ornstein-Uhlenbeck dynamics. The
+regime-switching mixture Kalman filter is described in the *kalmix roadmap*
+vignette.
+
+## A cointegration spread
+
+We simulate two cointegrated series -- `b` is a random walk, and `a` tracks
+it with a hedge ratio of two plus a mean-reverting spread `u` (a stationary
+AR(1) process, the realistic cointegration case) -- then recover the spread.
+
+```{r spread}
+library(kalmix)
+
+set.seed(1)
+b <- cumsum(rnorm(500))
+u <- as.numeric(arima.sim(list(ar = 0.8), n = 500))
+a <- 2 * b + u
+
+spread <- spread_series(a, b)
+attr(spread, "hedge_ratio")
+```
+
+The hedge ratio is recovered close to its true value of two, and `spread` is
+the stationary residual a pairs trade is built on.
+
+## Fitting the mean reversion
+
+`ou_fit()` estimates the continuous-time Ornstein-Uhlenbeck parameters of the
+spread by autoregression: the mean-reversion speed `kappa`, the long-run mean
+`theta`, the volatility `sigma`, and the implied half-life.
+
+```{r ou}
+model <- ou_fit(spread)
+model
+
+half_life(model)
+```
+
+The half-life is the expected time for a deviation from the long-run mean to
+halve -- the single most useful number for sizing a mean-reversion trade.
+
+A series whose dynamics are inconsistent with an Ornstein-Uhlenbeck process
+-- here an anti-persistent series with negative autocorrelation -- is refused
+rather than fitted with a meaningless half-life:
+
+```{r refuse, error = TRUE}
+ou_fit(as.numeric(arima.sim(list(ar = -0.6), n = 500)))
+```
