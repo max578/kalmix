@@ -1,4 +1,4 @@
-# kalmix 0.1.0.9000 (development)
+# kalmix 0.1.0
 
 This release turns kalmix from a thin pairs-trading scaffold into a general
 state-space toolkit, and relicences it as open-source MIT. Mean-reverting
