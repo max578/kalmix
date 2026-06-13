@@ -47,6 +47,7 @@ Imports:
     cli
 Suggests:
     proxymix,
+    kernR,
     testthat (>= 3.0.0),
     withr,
     knitr,
@@ -66,6 +67,7 @@ Collate:
     'hmm.R'
     'changepoint.R'
     'its-causal.R'
+    'aci.R'
     'kalmix-classes.R'
     'spread.R'
     'filter.R'

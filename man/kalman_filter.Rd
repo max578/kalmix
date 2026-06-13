@@ -33,13 +33,13 @@ matrices are honoured: a model whose \code{transition}, \code{observation},
 \code{state_cov} or \code{obs_cov} was supplied as a list of \code{n} matrices uses the
 step-\code{t} matrix at step \code{t}.
 }
-\section{ACI seam (Phase 2)}{
+\section{Assimilative causal inference}{
 
-The planned time-resolved relative-entropy read-out compares the filtering
-distribution \eqn{N(x_{t|t}, P_{t|t})} returned here with the smoothing
-distribution from \code{\link[=rts_smoother]{rts_smoother()}} step by step. That comparison will be a
-thin consumer of \code{kernR::relative_entropy()} -- kalmix supplies the Gaussian
-moments, kernR owns the divergence. No KL is computed in this package.
+The filtering distribution \eqn{N(x_{t|t}, P_{t|t})} returned here is one of
+the two distributions \code{\link[=aci]{aci()}} compares step by step: the time-resolved causal
+information is its relative entropy from the smoothing distribution of
+\code{\link[=rts_smoother]{rts_smoother()}} (Andreou, Chen and Bollt 2026, eq. 7). See \code{\link[=aci]{aci()}} and
+\code{\link[=causal_information_rate]{causal_information_rate()}}.
 }
 
 \examples{

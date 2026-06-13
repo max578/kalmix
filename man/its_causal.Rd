@@ -57,6 +57,9 @@ models. \emph{Annals of Applied Statistics}, 9(1), 247--274.
 \code{\link[=ssm]{ssm()}}, \code{\link[=kalman_filter]{kalman_filter()}}.
 
 Other causal: 
+\code{\link{aci}()},
+\code{\link{aci_fit}()},
+\code{\link{causal_information_rate}()},
 \code{\link{its_fit}()}
 }
 \concept{causal}

@@ -1,0 +1,8 @@
+NOAA CPC Oceanic Nino Index (ONI) -- recorded fixture for kalmix tests.
+
+source_url: https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt
+captured: 2026-06-13
+columns: seas (3-month season), year, oni (ANOM, the 3-month running
+  mean Nino-3.4 SST anomaly in degrees C).
+slice: 1980-2020 inclusive, chronological order.
+Public-domain US Government data (NOAA). Re-fetch from source_url to update.

@@ -40,10 +40,14 @@ reference:
 
 - title: Causal inference
   desc: >
-    The single-case interrupted-time-series causal contrast.
+    The single-case interrupted-time-series causal contrast and the
+    time-resolved assimilative-causal-inference read-out.
   contents:
   - its_causal
   - its_fit
+  - aci
+  - causal_information_rate
+  - aci_fit
 
 - title: Pairs-trading application
   desc: >
@@ -61,4 +65,5 @@ articles:
   contents:
   - state_space
   - change_points
+  - assimilative_causal_inference
   - pairs_trading

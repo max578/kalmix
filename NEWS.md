@@ -1,3 +1,38 @@
+# kalmix 0.2.0.9000 (development)
+
+This development cycle adds the time-resolved assimilative-causal-inference
+(ACI) path on top of the Phase 1 state-space core.
+
+## New features
+
+* **Assimilative causal inference.** `aci()` reads a time-resolved causal
+  information series off the Kalman filter and Rauch-Tung-Striebel smoother of
+  an `ssm`: the per-step relative entropy of the smoothing distribution of the
+  latent state from its filtering distribution (Andreou, Chen and Bollt 2026,
+  eq. 7), the information the future of the series adds to the present estimate
+  of the state. It returns an `aci_fit` carrying the causal information series,
+  its time-average, and -- by default -- the objective causal information rate
+  and the implied decision lead-time.
+* **Causal information rate and lead-time.** `causal_information_rate()`
+  computes the threshold-free objective causal information rate of Andreou,
+  Chen and Bollt (2026, eqs. 8--9) by integrating an expanding-future-window
+  divergence profile, returning a decision lead-time in the time units of the
+  series.
+* **Native Gaussian relative entropy.** The smoother-vs-filter divergence is
+  computed natively in closed form, so the ACI path is self-contained. When the
+  orchestra's `kernR` package is installed its `relative_entropy()` is used as
+  an independent oracle in the test suite; the comparison skips when `kernR` is
+  absent, so the package builds and checks cleanly either way (`kernR` is
+  `Suggests`-only).
+* **Validation.** A synthetic recharge-oscillator ENSO model with a known
+  hidden-state data-generating process is the primary self-consistency oracle
+  (the causal information is zero under the null and positive when coupled, the
+  hidden state is recovered from the observed effect alone, and the lead-time
+  grows with observation noise); the real NOAA Oceanic Nino Index is the
+  external oracle, run by an online-gated test against a recorded fixture. A new
+  *Assimilative causal inference with kalmix* vignette walks through both.
+
+
 # kalmix 0.1.0
 
 This release turns kalmix from a thin pairs-trading scaffold into a general

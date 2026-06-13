@@ -8,10 +8,12 @@
 # recursion over a completed filter pass to obtain the smoothed states given
 # the whole series. Both are exact for a linear-Gaussian model.
 #
-# ACI seam (Phase 2): the time-resolved relative-entropy read-out of the
-# filtering-vs-smoothing distributions -- KL( filter_t || smoother_t ) per step
-# -- plugs in here, consuming kernR::relative_entropy() rather than
-# reimplementing KL. See the @section in kalman_filter() and rts_smoother().
+# Assimilative Causal Inference (aci.R) reads off this filter/smoother pair: the
+# time-resolved causal information is KL( smoother_t || filter_t ) per step
+# (Andreou, Chen and Bollt 2026, eq. 7), and the objective causal information
+# rate gives a decision lead-time (their eqs. 8-9). The Gaussian KL is a closed
+# form implemented natively in aci.R; when kernR is installed its
+# relative_entropy() is used as an independent oracle in the test suite.
 
 #' A Kalman filter pass
 #'
@@ -97,12 +99,12 @@ rts_fit <- S7::new_class(
 #' `state_cov` or `obs_cov` was supplied as a list of `n` matrices uses the
 #' step-`t` matrix at step `t`.
 #'
-#' @section ACI seam (Phase 2):
-#' The planned time-resolved relative-entropy read-out compares the filtering
-#' distribution \eqn{N(x_{t|t}, P_{t|t})} returned here with the smoothing
-#' distribution from [rts_smoother()] step by step. That comparison will be a
-#' thin consumer of `kernR::relative_entropy()` -- kalmix supplies the Gaussian
-#' moments, kernR owns the divergence. No KL is computed in this package.
+#' @section Assimilative causal inference:
+#' The filtering distribution \eqn{N(x_{t|t}, P_{t|t})} returned here is one of
+#' the two distributions [aci()] compares step by step: the time-resolved causal
+#' information is its relative entropy from the smoothing distribution of
+#' [rts_smoother()] (Andreou, Chen and Bollt 2026, eq. 7). See [aci()] and
+#' [causal_information_rate()].
 #'
 #' @param model An [ssm].
 #' @param y A numeric vector (univariate) or `n` by `d` matrix (multivariate)
@@ -213,10 +215,11 @@ kalman_filter <- function(model, y) {
 #' Either a fitted [kalman_fit] or an [ssm] plus observations may be supplied;
 #' in the latter case the filter pass is run first.
 #'
-#' @section ACI seam (Phase 2):
-#' This smoother supplies the second of the two Gaussian distributions the
-#' planned time-resolved relative-entropy read-out compares. The divergence
-#' itself will be computed by `kernR::relative_entropy()`, not here.
+#' @section Assimilative causal inference:
+#' This smoother supplies the second of the two Gaussian distributions [aci()]
+#' compares: the time-resolved causal information is the relative entropy of the
+#' smoothing distribution \eqn{N(x_{t|n}, P_{t|n})} from the filtering
+#' distribution (Andreou, Chen and Bollt 2026, eq. 7). See [aci()].
 #'
 #' @param object A [kalman_fit] from [kalman_filter()], or an [ssm].
 #' @param y A numeric vector or matrix of observations. Required when `object`

@@ -29,11 +29,12 @@ covariance update. The result is exact for a linear-Gaussian model.
 Either a fitted \link{kalman_fit} or an \link{ssm} plus observations may be supplied;
 in the latter case the filter pass is run first.
 }
-\section{ACI seam (Phase 2)}{
+\section{Assimilative causal inference}{
 
-This smoother supplies the second of the two Gaussian distributions the
-planned time-resolved relative-entropy read-out compares. The divergence
-itself will be computed by \code{kernR::relative_entropy()}, not here.
+This smoother supplies the second of the two Gaussian distributions \code{\link[=aci]{aci()}}
+compares: the time-resolved causal information is the relative entropy of the
+smoothing distribution \eqn{N(x_{t|n}, P_{t|n})} from the filtering
+distribution (Andreou, Chen and Bollt 2026, eq. 7). See \code{\link[=aci]{aci()}}.
 }
 
 \examples{

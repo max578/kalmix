@@ -1,0 +1,172 @@
+---
+title: "Assimilative causal inference with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Assimilative causal inference with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4)
+set.seed(1)
+library(kalmix)
+```
+
+The interrupted-time-series contrast of `its_causal()` asks what an
+intervention *did*. Assimilative causal inference asks a different question:
+across a continuously observed series, *when* and *how far ahead* does a hidden
+driver carry causal information about what we measure. `aci()` answers it by
+reading a divergence off the two passes `kalmix` already provides -- the Kalman
+filter and the Rauch-Tung-Striebel smoother.
+
+## Causality as an assimilation problem
+
+Andreou, Chen and Bollt (2026) cast causal inference as a Bayesian
+data-assimilation inverse problem. A hidden state is a cause of an observed
+effect at time $t$ exactly when incorporating the *future* of the effect
+sharpens our estimate of the state at $t$. The filter estimates the state from
+the past alone, giving $N(x_{t\mid t}, P_{t\mid t})$; the smoother adds the
+future, giving $N(x_{t\mid n}, P_{t\mid n})$. The causal information the
+measurement carries about the state at $t$ is the relative entropy
+(Kullback-Leibler divergence) of the smoother from the filter,
+
+$$I_t = D_{\mathrm{KL}}\!\left(
+  N(x_{t\mid n}, P_{t\mid n}) \,\Vert\, N(x_{t\mid t}, P_{t\mid t}) \right).$$
+
+For two Gaussians this is a closed form, which `kalmix` computes natively. Time
+averaged, and integrated over an expanding future window, the divergence yields
+a threshold-free *causal information rate* -- a decision lead-time in the time
+units of the series.
+
+## A known-truth test: a recharge oscillator
+
+The cleanest way to trust a causal read-out is to run it on a system whose truth
+we control. We use a noise-sustained recharge oscillator (Jin, 1997), the
+canonical conceptual model of the El Nino-Southern Oscillation (ENSO). The
+hidden state $(T, h)$ is a sea-surface-temperature anomaly $T$ and a
+thermocline-depth anomaly $h$; their coupled, weakly damped dynamics produce an
+irregular oscillation of roughly four years. We observe only a scalar that warm
+$T$ drives through a coupling `kappa` -- think of a crop-water-stress index that
+rises in an El Nino year. When `kappa` is zero the observation tells us nothing
+about the hidden cause.
+
+```{r simulate}
+simulate_enso <- function(n = 600, kappa = 0.6, dt = 1 / 12, obs_sd = 0.5) {
+  drift <- matrix(c(0, 1.6, -1.6, -0.2), nrow = 2, byrow = TRUE)
+  amat <- diag(2) + drift * dt
+  z <- matrix(0, nrow = n, ncol = 2)
+  x <- numeric(n)
+  for (t in 2:n) {
+    z[t, ] <- as.numeric(amat %*% z[t - 1, ]) +
+      c(rnorm(1, sd = 0.35 * sqrt(dt)), rnorm(1, sd = 0.25 * sqrt(dt)))
+    x[t] <- kappa * z[t, 1] + rnorm(1, sd = obs_sd)
+  }
+  list(x = x, z = z, dt = dt, amat = amat)
+}
+
+sim <- simulate_enso(kappa = 0.6)
+```
+
+We give `aci()` a state-space model matching the data-generating process. The
+observation operator maps the first hidden component (the SST anomaly) to the
+observed series through the coupling:
+
+```{r model}
+model <- ssm(
+  transition = sim$amat,
+  observation = matrix(c(0.6, 0), nrow = 1),
+  state_cov = diag(c(0.35^2 * sim$dt, 0.25^2 * sim$dt)),
+  obs_cov = 0.5^2,
+  init_state = c(0, 0),
+  init_cov = diag(c(1, 1))
+)
+
+fit <- aci(model, sim$x, dt = sim$dt)
+fit
+```
+
+Two things to check against the known truth. First, the smoother recovers the
+hidden SST anomaly from the observed series *alone* -- the inverse-problem
+essence:
+
+```{r recovery}
+cor(fit@smoother@smoothed_mean[, 1], sim$z[, 1])
+```
+
+Second, the causal information series is positive where the future of the
+series is informative about the hidden state, and the decision lead-time is a
+sensible, sub-decadal horizon:
+
+```{r info-plot, echo = FALSE}
+years <- (seq_along(sim$x) - 1) * sim$dt
+op <- par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
+plot(years, sim$z[, 1], type = "l", col = "navy", xlab = "", ylab = "ENSO state T",
+     main = "Hidden ENSO state (navy) vs smoother estimate from the index alone (orange)")
+lines(years, fit@smoother@smoothed_mean[, 1], col = "orange")
+abline(h = 0, lty = 3, col = "grey60")
+plot(years, fit@causal_information, type = "l", col = "firebrick",
+     xlab = "year", ylab = "causal information (nats)",
+     main = "ACI causal information series I_t = KL(smoother || filter)")
+par(op)
+```
+
+## The null carries no causal information
+
+Under the null -- no coupling between the hidden state and the observation --
+the future of the series adds nothing the filter did not already have, so the
+causal information collapses to zero and the lead-time with it. This is the
+discriminating behaviour a causal read-out must show:
+
+```{r null}
+sim_null <- simulate_enso(kappa = 0)
+model_null <- ssm(
+  transition = sim_null$amat,
+  observation = matrix(c(1e-6, 0), nrow = 1),
+  state_cov = diag(c(0.35^2 * sim_null$dt, 0.25^2 * sim_null$dt)),
+  obs_cov = 0.5^2,
+  init_state = c(0, 0),
+  init_cov = diag(c(1, 1))
+)
+fit_null <- aci(model_null, sim_null$x, dt = sim_null$dt)
+c(coupled = fit@mean_causal_information, null = fit_null@mean_causal_information)
+c(coupled_lead = fit@lead_time, null_lead = fit_null@lead_time)
+```
+
+The coupled system carries causal information and a positive lead-time; the null
+carries neither.
+
+## A divergence between two Gaussians, cross-checked
+
+The metric `aci()` reads off the two passes is the relative entropy between the
+smoother and filter Gaussians at each step. This is canonical Gaussian
+arithmetic, so `kalmix` implements it natively and stays self-contained. Where
+the orchestra's `kernR` package is installed, its `relative_entropy()` provides
+an independent check on the value -- the package's test suite asserts the two
+agree and skips the comparison when `kernR` is absent, so `kalmix` builds and
+checks cleanly either way.
+
+## A real ENSO index
+
+The known-truth oscillator proves the read-out is internally consistent. As an
+external check, the package's test suite also runs `aci()` on the real NOAA
+Oceanic Nino Index -- a recorded copy ships as a test fixture, and an
+online-gated test confirms the read-out behaves on data nobody in this package
+generated. On the recorded index the smoother tracks the observed ENSO swing
+closely and the decision lead-time lands near half a year, the kind of
+predictability horizon the ENSO literature reports.
+
+## References
+
+Andreou, M., Chen, N. and Bollt, E. (2026). Assimilative causal inference.
+*Nature Communications*, 17, 1854.
+
+Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: A
+conceptual model. *Journal of the Atmospheric Sciences*, 54(7), 811--829.
+
+Kalman, R. E. (1960). A new approach to linear filtering and prediction
+problems. *Journal of Basic Engineering*, 82(1), 35--45.
+
+Rauch, H. E., Tung, F. and Striebel, C. T. (1965). Maximum likelihood estimates
+of linear dynamic systems. *AIAA Journal*, 3(8), 1445--1450.

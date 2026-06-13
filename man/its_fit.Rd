@@ -52,6 +52,9 @@ post-intervention effect with an interval.
 }
 \seealso{
 Other causal: 
+\code{\link{aci}()},
+\code{\link{aci_fit}()},
+\code{\link{causal_information_rate}()},
 \code{\link{its_causal}()}
 }
 \concept{causal}
