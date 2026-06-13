@@ -1,4 +1,4 @@
-# kalmix 0.2.0.9000 (development)
+# kalmix 0.2.0
 
 This development cycle adds the time-resolved assimilative-causal-inference
 (ACI) path on top of the Phase 1 state-space core.
