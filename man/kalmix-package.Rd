@@ -4,22 +4,30 @@
 \name{kalmix-package}
 \alias{kalmix}
 \alias{kalmix-package}
-\title{kalmix: Mixture Kalman Filtering for Mean-Reverting Spreads}
+\title{kalmix: General State-Space Modelling, Filtering and Change-Point Detection}
 \description{
-Gaussian-mixture state-space methods for mean-reverting spread models in pairs trading and statistical arbitrage. Estimates the Ornstein-Uhlenbeck dynamics of a cointegration spread and provides the interface for filtering a regime-switching spread state through a finite Gaussian-mixture Kalman recursion. Builds on the scalar mean-reverting spread model of Elliott, van der Hoek and Malcolm (2005) \doi{10.1080/14697680500149370}; the mixture Kalman engine is supplied by the optional 'proxymix' package.
+A compact, dependency-light toolkit for linear-Gaussian and discrete-state state-space models. Provides a vector-state Kalman filter and Rauch-Tung-Striebel smoother in closed form, a native Gaussian-mixture (regime-switching) filter, hidden Markov model filtering and Viterbi decoding, a likelihood-ratio change-point detector, and a minimal single-case interrupted-time-series causal contrast built on the smoother. Mean-reverting spread estimation for pairs trading is included as one documented application of the general machinery, building on the scalar Ornstein-Uhlenbeck spread model of Elliott, van der Hoek and Malcolm (2005) \doi{10.1080/14697680500149370}. Methods follow Kalman (1960) \doi{10.1115/1.3662552}, Rauch, Tung and Striebel (1965) \doi{10.2514/3.3166} and Durbin and Koopman (2012) \doi{10.1093/acprof:oso/9780199641178.001.0001}.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/max578/kalmix}
+  \item Report bugs at \url{https://github.com/max578/kalmix/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Max Moldovan \email{max.moldovan@gmail.com} (\href{https://orcid.org/0000-0001-9680-8474}{ORCID})
 
 Authors:
 \itemize{
-  \item Johannes van der Hoek (Co-developer; foundational spread model in Elliott, van der Hoek & Malcolm (2005).)
+  \item Johannes van der Hoek (Co-developer; foundational mean-reverting spread model in Elliott, van der Hoek & Malcolm (2005).)
 }
 
 Other contributors:
 \itemize{
-  \item Robert J. Elliott (Foundational theory in Elliott, van der Hoek & Malcolm (2005).) [contributor]
-  \item William P. Malcolm (Foundational theory in Elliott, van der Hoek & Malcolm (2005).) [contributor]
+  \item Robert J. Elliott (Foundational theory of the scalar mean-reverting spread filter in Elliott, van der Hoek & Malcolm (2005).) [contributor]
+  \item William P. Malcolm (Foundational theory of the scalar mean-reverting spread filter in Elliott, van der Hoek & Malcolm (2005).) [contributor]
 }
 
 }

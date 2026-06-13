@@ -1,0 +1,45 @@
+citHeader("To cite the kalmix package in publications, use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "{kalmix}: General State-Space Modelling, Filtering and Change-Point Detection",
+  author   = c(
+    person(given = "Max", family = "Moldovan",
+           comment = c(ORCID = "0000-0001-9680-8474")),
+    person(given = "Johannes", family = "van der Hoek")
+  ),
+  year     = "2026",
+  note     = "R package version 0.1.0.9000",
+  url      = "https://github.com/max578/kalmix",
+  textVersion = paste(
+    "Moldovan, M. and van der Hoek, J. (2026).",
+    "kalmix: General State-Space Modelling, Filtering and Change-Point",
+    "Detection. R package version 0.1.0.9000.",
+    "https://github.com/max578/kalmix"
+  )
+)
+
+bibentry(
+  bibtype = "Article",
+  header  = paste(
+    "The mean-reverting spread model underlying the pairs-trading",
+    "application is from:"
+  ),
+  title   = "Pairs trading",
+  author  = c(
+    person(given = "Robert J.", family = "Elliott"),
+    person(given = "Johannes", family = "van der Hoek"),
+    person(given = "William P.", family = "Malcolm")
+  ),
+  journal = "Quantitative Finance",
+  year    = "2005",
+  volume  = "5",
+  number  = "3",
+  pages   = "271--276",
+  doi     = "10.1080/14697680500149370",
+  textVersion = paste(
+    "Elliott, R. J., van der Hoek, J. and Malcolm, W. P. (2005).",
+    "Pairs trading. Quantitative Finance, 5(3), 271-276.",
+    "doi:10.1080/14697680500149370"
+  )
+)

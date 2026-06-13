@@ -1,0 +1,143 @@
+---
+title: "Pairs trading with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Pairs trading with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4)
+set.seed(1)
+library(kalmix)
+```
+
+Mean-reverting spread estimation for pairs trading is one application of the
+general state-space machinery in `kalmix`. A pairs trade bets that the spread
+between two cointegrated assets is stationary: it reverts to a long-run mean,
+so an unusually wide spread is an opportunity. This vignette builds a spread,
+fits its mean reversion, filters its volatility regime with the native mixture
+filter, and reads a causal contrast off an event with `its_causal()`.
+
+## A cointegration spread
+
+We simulate two cointegrated series -- `b` is a random walk, and `a` tracks it
+with a hedge ratio of two plus a mean-reverting spread `u` (a stationary AR(1)
+process, the realistic cointegration case) -- then recover the spread:
+
+```{r spread}
+b <- cumsum(rnorm(500))
+u <- as.numeric(arima.sim(list(ar = 0.8), n = 500))
+a <- 2 * b + u
+
+spread <- spread_series(a, b)
+attr(spread, "hedge_ratio")
+```
+
+The hedge ratio is recovered close to its true value of two, and `spread` is
+the stationary residual a pairs trade is built on.
+
+## Fitting the mean reversion
+
+`ou_fit()` estimates the continuous-time Ornstein-Uhlenbeck parameters of the
+spread: the mean-reversion speed `kappa`, the long-run mean `theta`, the
+volatility `sigma`, and the implied half-life. The continuous-time model is
+
+$$dX_t = \kappa (\theta - X_t)\, dt + \sigma\, dW_t,$$
+
+so the half-life of a deviation is $\log 2 / \kappa$.
+
+```{r ou}
+model <- ou_fit(spread)
+model
+
+half_life(model)
+```
+
+The half-life is the expected time for a deviation from the long-run mean to
+halve -- the single most useful number for sizing a mean-reversion trade.
+
+A series whose dynamics are inconsistent with an Ornstein-Uhlenbeck process --
+here an anti-persistent series with negative autocorrelation -- is refused
+rather than fitted with a meaningless half-life:
+
+```{r refuse, error = TRUE}
+ou_fit(as.numeric(arima.sim(list(ar = -0.6), n = 500)))
+```
+
+## Tracking the volatility regime
+
+A spread is not equally tradeable at all times: it passes through calm periods
+and turbulent periods. `kalmix_filter()` expands the fitted spread into
+volatility regimes -- linear-Gaussian state-space models that share the spread
+dynamics but differ in observation noise -- and filters the spread through the
+general `mixture_filter()` engine. The result is the filtered probability of
+each regime at every step.
+
+This runs on the package's own native filter and needs no other package. We
+build a spread that is calm in its first half and turbulent in its second, and
+the filter raises the turbulent-regime probability accordingly:
+
+```{r regime}
+calm <- as.numeric(arima.sim(list(ar = 0.7), n = 200, sd = 0.4))
+wild <- as.numeric(arima.sim(list(ar = 0.7), n = 200, sd = 2))
+two_regime <- c(calm, wild)
+
+fit <- kalmix_filter(ou_fit(two_regime), two_regime, n_regimes = 2)
+c(calm_half = mean(fit@regime_prob[1:200, 2]),
+  wild_half = mean(fit@regime_prob[201:400, 2]))
+```
+
+```{r regime-plot, echo = FALSE}
+plot(two_regime, col = "grey70", pch = 16, cex = 0.5, xlab = "time",
+     ylab = "spread", main = "Filtered turbulent-regime probability")
+par(new = TRUE)
+plot(fit@regime_prob[, 2], type = "l", col = "firebrick", lwd = 2,
+     axes = FALSE, xlab = "", ylab = "", ylim = c(0, 1))
+axis(4)
+mtext("P(turbulent)", side = 4, line = 2)
+```
+
+The turbulent-regime probability (red) is low through the calm first half and
+high through the turbulent second half -- the signal a mean-reversion strategy
+would condition position size on.
+
+## A causal read on an event
+
+Suppose a structural event -- a corporate action, a regime change -- is
+suspected to have shifted the spread at a known time. `its_causal()` forecasts
+the counterfactual spread the pre-event dynamics imply, and contrasts it with
+what was observed. Its interval is honest: a real effect excludes zero, a
+non-effect straddles it.
+
+```{r its}
+pre <- as.numeric(arima.sim(list(ar = 0.8), n = 80, sd = 0.5))
+post <- as.numeric(arima.sim(list(ar = 0.8), n = 40, sd = 0.5)) + 2
+impact <- its_causal(c(pre, post), intervention = 81L)
+impact
+```
+
+The estimated average effect recovers the injected lift and its interval
+excludes zero, so the event is flagged as a genuine shift rather than noise.
+
+## How kalmix fits together
+
+The pairs-trading workflow here is built entirely from the general machinery:
+`kalmix_filter()` is a thin wrapper over `mixture_filter()`, which is itself
+the regime-switching generalisation of the `kalman_filter()`, and `its_causal()`
+forecasts with the same `ssm()` and Kalman recursion. The mean-reverting spread
+is one application; the same tools serve any latent state observed through
+noise. The optional `engine = "proxymix"` path lets the regime filter defer to
+a sibling package's mixture-Kalman engine where one is installed, but the native
+filter is the default and always available.
+
+## References
+
+Elliott, R. J., van der Hoek, J. and Malcolm, W. P. (2005). Pairs trading.
+*Quantitative Finance*, 5(3), 271--276.
+
+Brodersen, K. H., Gallusser, F., Koehler, J., Remy, N. and Scott, S. L. (2015).
+Inferring causal impact using Bayesian structural time-series models. *Annals
+of Applied Statistics*, 9(1), 247--274.

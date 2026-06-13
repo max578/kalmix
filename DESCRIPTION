@@ -1,6 +1,6 @@
 Package: kalmix
 Type: Package
-Title: Mixture Kalman Filtering for Mean-Reverting Spreads
+Title: General State-Space Modelling, Filtering and Change-Point Detection
 Version: 0.0.0.9000
 Authors@R: c(
     person(given = "Max",
@@ -11,24 +11,32 @@ Authors@R: c(
     person(given = "Johannes",
            family = "van der Hoek",
            role = "aut",
-           comment = "Co-developer; foundational spread model in Elliott, van der Hoek & Malcolm (2005)."),
+           comment = "Co-developer; foundational mean-reverting spread model in Elliott, van der Hoek & Malcolm (2005)."),
     person(given = "Robert J.",
            family = "Elliott",
            role = "ctb",
-           comment = "Foundational theory in Elliott, van der Hoek & Malcolm (2005)."),
+           comment = "Foundational theory of the scalar mean-reverting spread filter in Elliott, van der Hoek & Malcolm (2005)."),
     person(given = "William P.",
            family = "Malcolm",
            role = "ctb",
-           comment = "Foundational theory in Elliott, van der Hoek & Malcolm (2005)."))
-Description: Gaussian-mixture state-space methods for mean-reverting spread
-    models in pairs trading and statistical arbitrage. Estimates the
-    Ornstein-Uhlenbeck dynamics of a cointegration spread and provides the
-    interface for filtering a regime-switching spread state through a
-    finite Gaussian-mixture Kalman recursion. Builds on the scalar
-    mean-reverting spread model of Elliott, van der Hoek and Malcolm
-    (2005) <doi:10.1080/14697680500149370>; the mixture Kalman engine is
-    supplied by the optional 'proxymix' package.
-License: file LICENSE
+           comment = "Foundational theory of the scalar mean-reverting spread filter in Elliott, van der Hoek & Malcolm (2005)."))
+Description: A compact, dependency-light toolkit for linear-Gaussian and
+    discrete-state state-space models. Provides a vector-state Kalman
+    filter and Rauch-Tung-Striebel smoother in closed form, a native
+    Gaussian-mixture (regime-switching) filter, hidden Markov model
+    filtering and Viterbi decoding, a likelihood-ratio change-point
+    detector, and a minimal single-case interrupted-time-series causal
+    contrast built on the smoother. Mean-reverting spread estimation for
+    pairs trading is included as one documented application of the general
+    machinery, building on the scalar Ornstein-Uhlenbeck spread model of
+    Elliott, van der Hoek and Malcolm (2005)
+    <doi:10.1080/14697680500149370>. Methods follow Kalman (1960)
+    <doi:10.1115/1.3662552>, Rauch, Tung and Striebel (1965)
+    <doi:10.2514/3.3166> and Durbin and Koopman (2012)
+    <doi:10.1093/acprof:oso/9780199641178.001.0001>.
+License: MIT + file LICENSE
+URL: https://github.com/max578/kalmix
+BugReports: https://github.com/max578/kalmix/issues
 Encoding: UTF-8
 Language: en-AU
 Depends:
@@ -47,3 +55,19 @@ VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
+Collate:
+    'linalg-internal.R'
+    'ssm-internal.R'
+    'ssm-class.R'
+    'kalman.R'
+    'mixture-internal.R'
+    'mixture.R'
+    'hmm-internal.R'
+    'hmm.R'
+    'changepoint.R'
+    'its-causal.R'
+    'kalmix-classes.R'
+    'spread.R'
+    'filter.R'
+    'kalmix-package.R'
+    'zzz.R'

@@ -1,8 +1,12 @@
-## S7 class for a fitted mean-reverting spread.
-##
-##   spread_model : the Ornstein-Uhlenbeck parameters of a cointegration
-##                  spread -- mean-reversion speed, long-run mean, volatility
-##                  -- plus the half-life and the fitting metadata.
+# kalmix-classes.R -- the mean-reverting-spread application class.
+#
+# spread_model is the S7 class for the pairs-trading application of the
+# package: the Ornstein-Uhlenbeck parameters of a cointegration spread --
+# mean-reversion speed, long-run mean, volatility -- plus the half-life and the
+# fitting metadata. It feeds kalmix_filter(), which expands a fitted spread into
+# regime-switching state-space models for the general mixture_filter() engine.
+# The general state-space machinery itself lives in ssm-class.R, kalman.R,
+# mixture.R, hmm.R, changepoint.R and its-causal.R.
 
 #' A fitted mean-reverting spread model
 #'

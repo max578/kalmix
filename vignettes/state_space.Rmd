@@ -1,0 +1,130 @@
+---
+title: "Getting started: state-space models with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started: state-space models with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4)
+set.seed(1)
+```
+
+`kalmix` is a compact toolkit for state-space models. A state-space model
+describes a latent state that evolves over time and is seen only through noisy
+observations; the recursions in this package recover the state, smooth it given
+the whole series, detect regime switches and change-points, and read a causal
+contrast off a forecast. This vignette covers the linear-Gaussian core --
+the `ssm()` model, the `kalman_filter()`, and the `rts_smoother()`. The
+*Change-points and hidden states with kalmix* vignette covers discrete-state
+models, and *Pairs trading with kalmix* covers the mean-reverting-spread
+application.
+
+## A linear-Gaussian state-space model
+
+The general model has a latent state $x_t$ that evolves through a transition
+matrix and Gaussian process noise, observed through an observation matrix and
+Gaussian observation noise:
+
+$$x_t = A_t\, x_{t-1} + w_t, \qquad w_t \sim N(0, Q_t),$$
+$$y_t = B_t\, x_t + v_t, \qquad v_t \sim N(0, R_t).$$
+
+`ssm()` builds this from the four system matrices plus a prior on the initial
+state. The simplest case is the local level -- a random walk seen through
+observation noise -- which can be written with bare scalars:
+
+```{r local-level}
+library(kalmix)
+
+model <- ssm(
+  transition = 1, observation = 1,
+  state_cov = 0.01, obs_cov = 1,
+  init_state = 0, init_cov = 10
+)
+model
+```
+
+## Filtering: recovering the state online
+
+`kalman_filter()` runs the forward recursion of Kalman (1960). At each step it
+predicts the state forward and then corrects it with the new observation. We
+simulate a slowly-drifting level seen through noise, then recover it:
+
+```{r filter}
+level <- cumsum(rnorm(150, sd = 0.1))
+y <- level + rnorm(150)
+
+fit <- kalman_filter(model, y)
+fit
+```
+
+The filtered mean tracks the latent level far more closely than the raw
+observations do:
+
+```{r filter-plot, echo = FALSE}
+plot(y, col = "grey70", pch = 16, cex = 0.6, xlab = "time", ylab = "value",
+     main = "Filtered state vs noisy observations")
+lines(level, col = "black", lwd = 2)
+lines(fit@filtered_mean[, 1], col = "steelblue", lwd = 2)
+legend("topleft", c("truth", "observed", "filtered"),
+       col = c("black", "grey70", "steelblue"),
+       lwd = c(2, NA, 2), pch = c(NA, 16, NA), bty = "n")
+```
+
+## Smoothing: using the whole series
+
+The filter conditions only on the past. The Rauch-Tung-Striebel smoother
+(Rauch, Tung and Striebel, 1965) runs a backward pass to condition every state
+estimate on the whole series, which is strictly more informative:
+
+```{r smooth}
+smoothed <- rts_smoother(fit)
+
+rmse <- function(a, b) sqrt(mean((a - b)^2))
+c(filtered = rmse(fit@filtered_mean[, 1], level),
+  smoothed = rmse(smoothed@smoothed_mean[, 1], level))
+```
+
+The smoothed estimate has the lower error, as it must -- it has seen the
+future as well as the past.
+
+## A vector state
+
+The state can have more than one dimension. A constant-velocity model tracks a
+position and an unobserved velocity; only the position is measured. The model
+recovers the hidden velocity from the position series alone:
+
+```{r velocity}
+velocity_model <- ssm(
+  transition = matrix(c(1, 0, 1, 1), nrow = 2),
+  observation = matrix(c(1, 0), nrow = 1),
+  state_cov = diag(c(1e-5, 1e-5)),
+  obs_cov = 1,
+  init_state = c(0, 1),
+  init_cov = diag(c(10, 10))
+)
+
+truth_velocity <- 0.5
+position <- truth_velocity * seq_len(150) + rnorm(150)
+vfit <- kalman_filter(velocity_model, position)
+
+## recovered terminal velocity, against the true 0.5
+vfit@filtered_mean[150, 2]
+```
+
+The recovered velocity sits close to the true `0.5`, even though velocity was
+never observed -- the model infers it from the rate of change of the position.
+
+## References
+
+Kalman, R. E. (1960). A new approach to linear filtering and prediction
+problems. *Journal of Basic Engineering*, 82(1), 35--45.
+
+Rauch, H. E., Tung, F. and Striebel, C. T. (1965). Maximum likelihood estimates
+of linear dynamic systems. *AIAA Journal*, 3(8), 1445--1450.
+
+Durbin, J. and Koopman, S. J. (2012). *Time Series Analysis by State Space
+Methods*, 2nd ed. Oxford University Press.

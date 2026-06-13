@@ -4,40 +4,60 @@
 \alias{kalmix_filter}
 \title{Filter a regime-switching spread state (mixture Kalman)}
 \usage{
-kalmix_filter(model, y, n_regimes = 2L, ...)
+kalmix_filter(
+  model,
+  y,
+  n_regimes = 2L,
+  vol_multipliers = NULL,
+  engine = c("native", "proxymix")
+)
 }
 \arguments{
-\item{model}{A \link{spread_model} giving the per-regime mean-reversion
-dynamics.}
+\item{model}{A \link{spread_model} giving the mean-reversion dynamics of the
+spread, as returned by \code{\link[=ou_fit]{ou_fit()}}.}
 
-\item{y}{Numeric vector — the observed spread series to filter.}
+\item{y}{A numeric vector — the observed spread series to filter.}
 
-\item{n_regimes}{Integer scalar — the number of mixture components
-(cointegration regimes) to track. Defaults to \code{2}.}
+\item{n_regimes}{Integer scalar — the number of volatility regimes to track.
+Defaults to \code{2}.}
 
-\item{...}{Reserved for forward compatibility with
-\code{proxymix::gmm_filter()}.}
+\item{vol_multipliers}{A numeric vector of length \code{n_regimes} giving each
+regime's observation-noise multiple of the fitted spread variance, or
+\code{NULL} for a geometric spread from calm to turbulent. Defaults to \code{NULL}.}
+
+\item{engine}{Character scalar — \code{"native"} (default) or \code{"proxymix"}.}
 }
 \value{
-A filtered-state object (once the proxymix engine is available).
+A \link{regime_fit} over the spread's volatility regimes.
 }
 \description{
 Filters the latent mean-reverting state of a spread through a finite
 Gaussian-mixture Kalman recursion, the regime-switching generalisation of
-the scalar filter of Elliott, van der Hoek and Malcolm (2005): each
-mixture component is one cointegration regime, and the recursion is the
-component-wise Kalman update plus an evidence reweighting.
+the scalar filter of Elliott, van der Hoek and Malcolm (2005). The fitted
+\link{spread_model} is expanded into \code{n_regimes} linear-Gaussian regimes that
+share the spread's mean-reversion dynamics but differ in observation noise,
+from calm to turbulent; the observed spread is filtered through
+\code{\link[=mixture_filter]{mixture_filter()}}, and the returned \link{regime_fit} carries both the
+filtered spread state and the posterior probability of each volatility
+regime at every step.
 }
 \details{
-The recursion is supplied by the optional \code{proxymix} package
-(\code{proxymix::gmm_filter()}). Until that primitive ships, this function is
-dormant: it validates its arguments and then errors with a commissioning
-notice. The signature is stable, so downstream code and tests can be
-written against it now.
+The recursion runs on the package's native engine and needs no sibling
+package. If \code{proxymix} and its mixture-Kalman primitive are installed and
+\code{engine = "proxymix"} is requested, that engine is used instead; otherwise
+the native filter is used and remains the default.
 }
 \examples{
 x <- as.numeric(stats::arima.sim(list(ar = 0.85), n = 400))
 model <- ou_fit(x)
-try(kalmix_filter(model, x))
+fit <- kalmix_filter(model, x)
+tail(round(fit@regime_prob, 2))
+}
+\references{
+Elliott, R. J., van der Hoek, J. and Malcolm, W. P. (2005). Pairs trading.
+\emph{Quantitative Finance}, 5(3), 271--276.
+}
+\seealso{
+\code{\link[=mixture_filter]{mixture_filter()}} for the general engine; \code{\link[=ou_fit]{ou_fit()}} for the model.
 }
 \concept{filter}

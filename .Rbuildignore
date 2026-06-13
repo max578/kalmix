@@ -1,5 +1,8 @@
 ^kalmix\.Rproj$
 ^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
 ^\.claude$
 ^\.positai$
 ^\.cursor$

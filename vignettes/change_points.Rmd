@@ -1,0 +1,131 @@
+---
+title: "Change-points and hidden states with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Change-points and hidden states with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4)
+set.seed(1)
+library(kalmix)
+```
+
+Many series are not smooth -- they switch abruptly between states or shift
+their mean at unknown times. `kalmix` handles three flavours of this:
+change-point detection for abrupt shifts in level, hidden Markov models for
+recurring discrete states, and the regime-switching mixture filter for series
+that switch between several linear-Gaussian dynamics. This vignette walks
+through the first two; the mixture filter is shown in *Pairs trading with
+kalmix*.
+
+## Change-point detection
+
+`detect_changepoint()` finds shifts in the mean of a sequence. We simulate a
+series with two known shifts -- at index 50 and index 100 -- and recover them:
+
+```{r changepoint}
+x <- c(rnorm(50, mean = 0), rnorm(50, mean = 4), rnorm(50, mean = 1))
+cp <- detect_changepoint(x)
+cp
+```
+
+```{r changepoint-plot, echo = FALSE}
+plot(x, col = "grey60", pch = 16, cex = 0.6, xlab = "time", ylab = "value",
+     main = "Detected change-points")
+bounds <- c(0, cp@changepoints, length(x))
+for (i in seq_along(cp@segment_means)) {
+  segments(bounds[i] + 1, cp@segment_means[i], bounds[i + 1],
+           cp@segment_means[i], col = "firebrick", lwd = 2)
+}
+abline(v = cp@changepoints + 0.5, lty = 2, col = "steelblue")
+```
+
+The detector places its change-points within a couple of indices of the truth
+and recovers the three segment means.
+
+### The penalty controls over-segmentation
+
+The hard part of change-point detection is not finding a split -- it is
+deciding when *not* to. On a single homogeneous segment the best available
+split still improves the fit by chance, so an unpenalised search would shatter
+a flat series into spurious pieces. `detect_changepoint()` guards against this
+with a penalty that a split must clear. The default `"mbic"` penalty is
+calibrated so a genuinely homogeneous series is left whole:
+
+```{r changepoint-null}
+flat <- rnorm(200)
+detect_changepoint(flat)@changepoints
+```
+
+A weaker penalty is available for callers who want more sensitivity, at the
+cost of more false positives:
+
+```{r changepoint-penalty}
+subtle <- c(rnorm(60, 0), rnorm(60, 1.2), rnorm(60, 0))
+c(mbic = length(detect_changepoint(subtle, penalty = "mbic")@changepoints),
+  sic  = length(detect_changepoint(subtle, penalty = "sic")@changepoints))
+```
+
+## Hidden Markov models
+
+A hidden Markov model is the discrete-state cousin of the state-space model: a
+finite Markov chain over hidden states, each emitting a Gaussian observation.
+`hmm()` builds the model, `hmm_filter()` gives the state posteriors, and
+`hmm_viterbi()` returns the single most likely state path.
+
+We build a two-state mean-shift model -- a low state near `0` and a high state
+near `4` -- and simulate from it:
+
+```{r hmm-build}
+model <- hmm(
+  init_prob = c(0.5, 0.5),
+  transition = matrix(c(0.95, 0.05, 0.05, 0.95), nrow = 2, byrow = TRUE),
+  emission_mean = c(0, 4), emission_sd = c(1, 1)
+)
+model
+
+true_state <- c(rep(1L, 60), rep(2L, 60), rep(1L, 60))
+y <- rnorm(180, mean = c(0, 4)[true_state], sd = 1)
+```
+
+The smoothed posterior and the Viterbi path both recover the hidden state with
+near-perfect accuracy for these well-separated states:
+
+```{r hmm-recover}
+fit <- hmm_filter(model, y)
+path <- hmm_viterbi(model, y)
+
+c(smoothed_accuracy = mean(fit@state_path == true_state),
+  viterbi_accuracy  = mean(path == true_state))
+```
+
+```{r hmm-plot, echo = FALSE}
+plot(y, col = c("grey70", "firebrick")[true_state], pch = 16, cex = 0.6,
+     xlab = "time", ylab = "observation",
+     main = "HMM: smoothed posterior of the high state")
+par(new = TRUE)
+plot(fit@smoothed[, 2], type = "l", col = "steelblue", lwd = 2,
+     axes = FALSE, xlab = "", ylab = "", ylim = c(0, 1))
+axis(4)
+mtext("P(high state)", side = 4, line = 2)
+```
+
+The smoothed posterior (blue) rises to near one over the central high-state
+block and falls back to near zero on either side. The difference between the
+two read-outs is subtle but real: the Viterbi path is *jointly* optimal -- the
+single most likely sequence -- while the smoothed mode is optimal at each step
+taken on its own.
+
+## References
+
+Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected
+applications in speech recognition. *Proceedings of the IEEE*, 77(2),
+257--286.
+
+Killick, R., Fearnhead, P. and Eckley, I. A. (2012). Optimal detection of
+changepoints with a linear computational cost. *Journal of the American
+Statistical Association*, 107(500), 1590--1598.
