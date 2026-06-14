@@ -4,7 +4,16 @@
 \alias{aci}
 \title{Assimilative Causal Inference read-out for a state-space model}
 \usage{
-aci(model, y, lead_time = TRUE, dt = 1, eval_points = NULL, max_lag = NULL)
+aci(
+  model,
+  y,
+  lead_time = TRUE,
+  dt = 1,
+  eval_points = NULL,
+  max_lag = NULL,
+  mechanism = NULL,
+  alpha = 0.05
+)
 }
 \arguments{
 \item{model}{An \link{ssm}.}
@@ -26,6 +35,15 @@ of the series.}
 
 \item{max_lag}{Integer scalar -- the largest future-window lag, in steps,
 used for the lead-time. Defaults to one fifth of the series length.}
+
+\item{mechanism}{Optional declared provenance for the model as the
+data-generating mechanism: \code{NULL} (the default, an unverified
+mechanism), or a list carrying a \code{verified_on} \code{Date} on which the model
+was checked against the external authority that owns it. Only a verified
+mechanism can raise an adequate read-out to a \code{"grounded"} verdict.}
+
+\item{alpha}{Numeric scalar -- the significance level the model-adequacy
+diagnostics abstain at. Defaults to \code{0.05}.}
 }
 \value{
 An \link{aci_fit}.
@@ -53,8 +71,14 @@ causal information series alone, which is cheaper for long series.
 
 The recovered state is interpretable as a cause of the observed series only
 under the maintained assumption that the \link{ssm} is the data-generating
-mechanism; ACI quantifies the causal information that assumption implies, it
-does not test the assumption itself.
+mechanism. That assumption is not taken on trust: the read-out is grounded
+through \code{\link[=innovation_diagnostics]{innovation_diagnostics()}}, and a model whose standardised
+innovations are not white, not correctly scaled, or not Gaussian is declared
+inadequate, so the verdict abstains with a \verb{[unverified]} grounding token.
+Passing the diagnostics establishes self-consistency only; the verdict is
+labelled \code{"grounded"} solely when an adequate model is accompanied by
+declared, dated \code{mechanism} provenance, and is the honest \code{"[unverified]"}
+otherwise.
 }
 \examples{
 ## A latent oscillation seen through a slow, noisy observation channel: the
@@ -95,6 +119,8 @@ estimates of linear dynamic systems. \emph{AIAA Journal}, 3(8), 1445--1450.
 Other causal: 
 \code{\link{aci_fit}()},
 \code{\link{causal_information_rate}()},
+\code{\link{innov_diag}()},
+\code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},
 \code{\link{its_fit}()}
 }

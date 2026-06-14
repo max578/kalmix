@@ -10,7 +10,8 @@ causal_information_rate(
   dt = 1,
   eval_points = NULL,
   max_lag = NULL,
-  n_lag = 12L
+  n_lag = 12L,
+  engine = c("online", "expanding")
 )
 }
 \arguments{
@@ -31,6 +32,12 @@ future to integrate over.}
 
 \item{n_lag}{Integer scalar -- the number of window lengths the divergence
 profile is evaluated at, including zero. Defaults to \code{12}.}
+
+\item{engine}{Character -- \code{"online"} (default) computes the lead-time with a
+fixed-point smoother recursion that avoids re-smoothing and handles
+time-varying models; \code{"expanding"} reruns the smoother on each truncated
+series and requires a time-invariant model. The two agree to numerical
+precision and cross-check each other.}
 }
 \value{
 Numeric scalar -- the objective causal information rate (a lead-time
@@ -58,11 +65,16 @@ with \eqn{M = D(0)} the filter value, the second equality by integration by
 parts of the decreasing profile. The rate is the average of \eqn{\tau(t_0)}
 over the anchors, scaled to time units by \code{dt}.
 
-The window is grown to \code{max_lag} steps in a modest number of jumps; each jump
-reruns the filter and smoother on a truncated series, so the cost is
-\code{length(eval_points)} times a handful of smoother passes. This is the direct
-expanding-window construction of the published equations; an online recursion
-that avoids the re-smoothing is a planned refinement.
+Two engines compute the same divergence profile. The default \code{"online"}
+engine grows the future window through a fixed-point smoother recursion: the
+smoothed estimate of the anchor state is updated in place as each later
+observation is assimilated, by accumulating the Rauch-Tung-Striebel gains, so
+the whole profile costs one filter-smoother pass plus \code{length(eval_points)}
+light forward recursions and no re-smoothing. It is exact and applies to
+time-varying models. The \code{"expanding"} engine instead reruns the filter and
+smoother on each truncated series -- the direct construction of the published
+equations, retained as an independent cross-check and restricted to
+time-invariant models. The two agree to numerical precision.
 }
 \examples{
 model <- ssm(
@@ -92,6 +104,8 @@ Andreou, M., Chen, N. and Bollt, E. (2026). Assimilative causal inference.
 Other causal: 
 \code{\link{aci}()},
 \code{\link{aci_fit}()},
+\code{\link{innov_diag}()},
+\code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},
 \code{\link{its_fit}()}
 }

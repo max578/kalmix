@@ -154,11 +154,11 @@ test_that("causal_information_rate() validates its inputs", {
   )
 })
 
-test_that("causal_information_rate() refuses a time-varying model", {
-  ## The expanding-window construction reruns the recursions on truncated
-  ## series, which a time-varying model cannot honour; the verb must say so
-  ## rather than fail obscurely. The causal information series itself is
-  ## unaffected.
+test_that("causal_information_rate() handles time-varying models online only", {
+  ## The online engine assimilates forward in place, so a time-varying model is
+  ## fine; the expanding engine reruns the recursions on truncated series, which
+  ## a time-varying model cannot honour, so it must say so rather than fail
+  ## obscurely. The causal information series itself is unaffected either way.
   n <- 60L
   a_list <- rep(list(matrix(1)), n)
   model <- ssm(
@@ -167,7 +167,11 @@ test_that("causal_information_rate() refuses a time-varying model", {
   )
   withr::local_seed(4L)
   y <- cumsum(stats::rnorm(n, sd = 0.3)) + stats::rnorm(n)
-  expect_error(causal_information_rate(model, y), "time-invariant")
+  cir <- causal_information_rate(model, y)
+  expect_true(is.finite(cir) && cir >= 0)
+  expect_error(
+    causal_information_rate(model, y, engine = "expanding"), "time-invariant"
+  )
   ## The series path still works.
   fit <- aci(model, y, lead_time = FALSE)
   expect_length(fit@causal_information, n)
@@ -183,6 +187,7 @@ test_that("real ENSO index: ACI runs on the NOAA ONI as an external oracle", {
   ## sub-decadal predictability horizon, and a smoother that tracks the index),
   ## not point values. Gated so offline and CRAN runs skip it.
   skip_on_cran()
+  skip_if_not_installed("curl")
   skip_if_offline()
 
   fixture <- testthat::test_path("fixtures", "oni_noaa.csv")

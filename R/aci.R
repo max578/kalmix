@@ -50,6 +50,13 @@
 #'   in. Defaults to `1`, so the lead-time is in steps.
 #' @param filter The [kalman_fit] the read-out was computed from.
 #' @param smoother The [rts_fit] the read-out was computed from.
+#' @param grounding Character scalar -- the grounding token of the causal
+#'   verdict, `"grounded"` or `"[unverified]"` (provenance_vocabulary.md §1).
+#' @param grounding_reason Character scalar -- a short label for why the verdict
+#'   carries that token (`"grounded"`, `"mechanism_unverified"`,
+#'   `"model_inadequate"` or `"insufficient_data"`).
+#' @param adequacy The [innov_diag] model-adequacy diagnostics the grounding was
+#'   read from.
 #'
 #' @returns An S7 object of class `aci_fit`.
 #' @family causal
@@ -70,7 +77,16 @@ aci_fit <- S7::new_class(
     ),
     dt = S7::new_property(class = S7::class_double, default = 1),
     filter = kalman_fit,
-    smoother = rts_fit
+    smoother = rts_fit,
+    grounding = S7::new_property(
+      class = S7::class_character,
+      default = "[unverified]"
+    ),
+    grounding_reason = S7::new_property(
+      class = S7::class_character,
+      default = NA_character_
+    ),
+    adequacy = S7::class_any
   ),
   validator = function(self) {
     if (anyNA(self@causal_information) ||
@@ -166,8 +182,14 @@ aci_fit <- S7::new_class(
 #'
 #' The recovered state is interpretable as a cause of the observed series only
 #' under the maintained assumption that the [ssm] is the data-generating
-#' mechanism; ACI quantifies the causal information that assumption implies, it
-#' does not test the assumption itself.
+#' mechanism. That assumption is not taken on trust: the read-out is grounded
+#' through [innovation_diagnostics()], and a model whose standardised
+#' innovations are not white, not correctly scaled, or not Gaussian is declared
+#' inadequate, so the verdict abstains with a `[unverified]` grounding token.
+#' Passing the diagnostics establishes self-consistency only; the verdict is
+#' labelled `"grounded"` solely when an adequate model is accompanied by
+#' declared, dated `mechanism` provenance, and is the honest `"[unverified]"`
+#' otherwise.
 #'
 #' @param model An [ssm].
 #' @param y A numeric vector or `n` by `d` matrix of observations.
@@ -183,6 +205,13 @@ aci_fit <- S7::new_class(
 #'   of the series.
 #' @param max_lag Integer scalar -- the largest future-window lag, in steps,
 #'   used for the lead-time. Defaults to one fifth of the series length.
+#' @param mechanism Optional declared provenance for the model as the
+#'   data-generating mechanism: `NULL` (the default, an unverified
+#'   mechanism), or a list carrying a `verified_on` `Date` on which the model
+#'   was checked against the external authority that owns it. Only a verified
+#'   mechanism can raise an adequate read-out to a `"grounded"` verdict.
+#' @param alpha Numeric scalar -- the significance level the model-adequacy
+#'   diagnostics abstain at. Defaults to `0.05`.
 #'
 #' @returns An [aci_fit].
 #' @family causal
@@ -224,7 +253,9 @@ aci <- function(model,
                 lead_time = TRUE,
                 dt = 1,
                 eval_points = NULL,
-                max_lag = NULL) {
+                max_lag = NULL,
+                mechanism = NULL,
+                alpha = 0.05) {
   if (!S7::S7_inherits(model, ssm)) {
     cli::cli_abort("`model` must be an {.cls ssm}.")
   }
@@ -246,6 +277,9 @@ aci <- function(model,
     lead <- rate
   }
 
+  adequacy <- innovation_diagnostics(filter, alpha = alpha)
+  grounding <- .aci_grounding(adequacy, mechanism)
+
   aci_fit(
     causal_information = info,
     mean_causal_information = mean(info),
@@ -253,7 +287,10 @@ aci <- function(model,
     lead_time = lead,
     dt = dt,
     filter = filter,
-    smoother = smoother
+    smoother = smoother,
+    grounding = grounding$grounding,
+    grounding_reason = grounding$reason,
+    adequacy = adequacy
   )
 }
 
@@ -305,11 +342,16 @@ aci <- function(model,
 #' parts of the decreasing profile. The rate is the average of \eqn{\tau(t_0)}
 #' over the anchors, scaled to time units by `dt`.
 #'
-#' The window is grown to `max_lag` steps in a modest number of jumps; each jump
-#' reruns the filter and smoother on a truncated series, so the cost is
-#' `length(eval_points)` times a handful of smoother passes. This is the direct
-#' expanding-window construction of the published equations; an online recursion
-#' that avoids the re-smoothing is a planned refinement.
+#' Two engines compute the same divergence profile. The default `"online"`
+#' engine grows the future window through a fixed-point smoother recursion: the
+#' smoothed estimate of the anchor state is updated in place as each later
+#' observation is assimilated, by accumulating the Rauch-Tung-Striebel gains, so
+#' the whole profile costs one filter-smoother pass plus `length(eval_points)`
+#' light forward recursions and no re-smoothing. It is exact and applies to
+#' time-varying models. The `"expanding"` engine instead reruns the filter and
+#' smoother on each truncated series -- the direct construction of the published
+#' equations, retained as an independent cross-check and restricted to
+#' time-invariant models. The two agree to numerical precision.
 #'
 #' @param model An [ssm].
 #' @param y A numeric vector or matrix of observations.
@@ -323,6 +365,11 @@ aci <- function(model,
 #'   future to integrate over.
 #' @param n_lag Integer scalar -- the number of window lengths the divergence
 #'   profile is evaluated at, including zero. Defaults to `12`.
+#' @param engine Character -- `"online"` (default) computes the lead-time with a
+#'   fixed-point smoother recursion that avoids re-smoothing and handles
+#'   time-varying models; `"expanding"` reruns the smoother on each truncated
+#'   series and requires a time-invariant model. The two agree to numerical
+#'   precision and cross-check each other.
 #'
 #' @returns Numeric scalar -- the objective causal information rate (a lead-time
 #'   in the time units set by `dt`), `0` where no future information is
@@ -355,7 +402,9 @@ causal_information_rate <- function(model,
                                     dt = 1,
                                     eval_points = NULL,
                                     max_lag = NULL,
-                                    n_lag = 12L) {
+                                    n_lag = 12L,
+                                    engine = c("online", "expanding")) {
+  engine <- match.arg(engine)
   if (!S7::S7_inherits(model, ssm)) {
     cli::cli_abort("`model` must be an {.cls ssm}.")
   }
@@ -365,21 +414,23 @@ causal_information_rate <- function(model,
   y <- .check_observations(y, model)
   n <- nrow(y)
 
-  # The expanding-window construction reruns the filter and smoother on
-  # truncated series, which a time-varying model cannot honour (its per-step
-  # matrices would no longer match the truncated length). The causal
-  # information series of aci() is unaffected; only the lead-time needs a
+  # The expanding engine reruns the filter and smoother on truncated series,
+  # which a time-varying model cannot honour (its per-step matrices would no
+  # longer match the truncated length). The online engine assimilates forward in
+  # place and has no such restriction, so only the expanding engine needs a
   # static model.
-  static <- all(vapply(
-    c("transition", "observation", "state_cov", "obs_cov"),
-    function(nm) length(S7::prop(model, nm)) == 1L,
-    logical(1L)
-  ))
-  if (!static) {
-    cli::cli_abort(c(
-      "The causal information rate needs a time-invariant {.cls ssm}.",
-      "i" = "Use {.fn aci} with {.code lead_time = FALSE} for the causal information series of a time-varying model."
+  if (identical(engine, "expanding")) {
+    static <- all(vapply(
+      c("transition", "observation", "state_cov", "obs_cov"),
+      function(nm) length(S7::prop(model, nm)) == 1L,
+      logical(1L)
     ))
+    if (!static) {
+      cli::cli_abort(c(
+        "The expanding engine needs a time-invariant {.cls ssm}.",
+        "i" = "Use {.code engine = \"online\"} for a time-varying model."
+      ))
+    }
   }
 
   if (is.null(max_lag)) {
@@ -393,12 +444,20 @@ causal_information_rate <- function(model,
   eval_points <- .aci_eval_points(eval_points, n, max_lag)
   lags <- unique(as.integer(round(seq(0, max_lag, length.out = n_lag))))
 
-  # Complete smoother: the reference every expanding window is compared with.
-  complete <- rts_smoother(kalman_filter(model, y))
+  # One filter-smoother pass; the complete smoother is the reference every
+  # window is compared with, and the filter feeds the online recursion.
+  filter <- kalman_filter(model, y)
+  complete <- rts_smoother(filter)
 
   per_anchor <- vapply(
     eval_points,
-    function(t0) .aci_objective_at(model, y, t0, lags, complete),
+    function(t0) {
+      if (identical(engine, "online")) {
+        .aci_objective_online(filter, complete, t0, lags)
+      } else {
+        .aci_objective_at(model, y, t0, lags, complete)
+      }
+    },
     numeric(1L)
   )
   mean(per_anchor) * dt
@@ -453,6 +512,78 @@ causal_information_rate <- function(model,
   )
 
   .cir_trapezoid(as.numeric(lags), divergence)
+}
+
+#' Objective causal information range at one anchor by the online smoother
+#'
+#' The fixed-point-smoother equivalent of [.aci_objective_at()]: forms the same
+#' expanding-future-window divergence profile \eqn{D(L)} at anchor `t0` without
+#' re-smoothing. The smoothed estimate of the anchor state under data to
+#' \eqn{t_0 + L} is grown forward from the filtered estimate by accumulating
+#' the Rauch-Tung-Striebel gains
+#' \eqn{C_t = P_{t|t} A_{t+1}^\top P_{t+1|t}^{-1}} into a product \eqn{\Phi},
+#' telescoping the smoother recursion so that
+#' \eqn{x_{t_0 \mid t_0 + L} = x_{t_0 \mid t_0} +
+#'   \sum_{t=t_0+1}^{t_0+L} \Phi_{t_0,t}\,(x_{t \mid t} - x_{t \mid t-1})}
+#' and the covariance analogously. This is exact and honours time-varying
+#' models. The profile is recorded at the requested `lags` and reduced by the
+#' same trapezoidal rule.
+#'
+#' @param filter The [kalman_fit] over the whole series.
+#' @param complete The [rts_fit] over the whole series.
+#' @param t0 Integer scalar -- the anchor step.
+#' @param lags An increasing integer vector of window lengths starting at zero.
+#'
+#' @returns Numeric scalar -- the objective range at `t0`, in steps.
+#' @noRd
+#' @keywords internal
+.aci_objective_online <- function(filter, complete, t0, lags) {
+  model <- filter@model
+  n <- nrow(filter@filtered_mean)
+  m <- ncol(filter@filtered_mean)
+  mc <- complete@smoothed_mean[t0, ]
+  pc <- complete@smoothed_cov[[t0]]
+
+  want <- as.integer(lags)
+  max_lag <- max(want)
+  divergence <- rep(NA_real_, length(want))
+
+  # L = 0: the filter posterior at the anchor against the complete smoother.
+  phi <- diag(1, m)
+  x_jm <- filter@filtered_mean[t0, ]
+  p_jm <- filter@filtered_cov[[t0]]
+  divergence[want == 0L] <- .gaussian_relative_entropy(x_jm, p_jm, mc, pc)
+
+  for (lag in seq_len(max_lag)) {
+    t <- t0 + lag
+    if (t > n) {
+      break
+    }
+    a_t <- .at_step(model@transition, t)
+    c_prev <- filter@filtered_cov[[t - 1L]] %*% t(a_t) %*% chol2inv(
+      .safe_chol(filter@predicted_cov[[t]], "predicted covariance")
+    )
+    phi <- phi %*% c_prev
+    x_jm <- x_jm + as.numeric(
+      phi %*% (filter@filtered_mean[t, ] - filter@predicted_mean[t, ])
+    )
+    p_jm <- .symmetrise(
+      p_jm + phi %*%
+        (filter@filtered_cov[[t]] - filter@predicted_cov[[t]]) %*% t(phi)
+    )
+    if (any(want == lag)) {
+      divergence[want == lag] <- .gaussian_relative_entropy(x_jm, p_jm, mc, pc)
+    }
+  }
+
+  # If the series ended before max_lag, the window cannot extend further; carry
+  # the last computed divergence forward so the profile stays well-formed.
+  if (anyNA(divergence)) {
+    last <- max(which(!is.na(divergence)))
+    divergence[is.na(divergence)] <- divergence[last]
+  }
+
+  .cir_trapezoid(as.numeric(want), divergence)
 }
 
 #' Threshold-free range from a divergence-versus-lag profile
@@ -534,5 +665,13 @@ S7::method(print, aci_fit) <- function(x, ...) {
   } else {
     cat("  decision lead-time      : not computed\n")
   }
+  reason <- if (is.na(x@grounding_reason)) {
+    ""
+  } else {
+    sprintf(" (%s)", x@grounding_reason)
+  }
+  cat(sprintf(
+    "  grounding               : %s%s\n", x@grounding, reason
+  ))
   invisible(x)
 }

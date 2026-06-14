@@ -147,6 +147,73 @@ an independent check on the value -- the package's test suite asserts the two
 agree and skips the comparison when `kernR` is absent, so `kalmix` builds and
 checks cleanly either way.
 
+## Grounding the verdict: abstention under model error
+
+ACI reads its causal verdict off a state-space model, so the verdict is only as
+honest as the model. A model that cannot even describe the observed series
+cannot support a causal claim about it. `aci()` therefore grounds every read-out
+through `innovation_diagnostics()`, the standard battery of state-space model
+checks run on the standardised one-step-ahead innovations: a Ljung-Box test for
+serial correlation, a $\chi^2$ test of the total normalised innovation squared
+for a mis-scaled noise level, and a Jarque-Bera test for non-Gaussianity. When
+the innovations reject the model it is declared inadequate and the verdict
+abstains with a `[unverified]` grounding token instead of asserting a confident
+lead-time.
+
+```{r abstain}
+# A frozen-state local level cannot track the oscillating ENSO index: its
+# innovations are autocorrelated and mis-scaled, so ACI abstains.
+frozen <- ssm(transition = 1, observation = 1, state_cov = 1e-6, obs_cov = 1,
+              init_state = 0, init_cov = 10)
+abstained <- aci(frozen, sim$x, dt = sim$dt)
+c(grounding = abstained@grounding, reason = abstained@grounding_reason)
+abstained@adequacy
+```
+
+Passing the diagnostics establishes self-consistency only -- it does not verify
+the model against the outside world, which is what grounding means. An adequate
+model is labelled `"grounded"` solely when it is accompanied by declared, dated
+mechanism provenance: a record that the model was checked against the external
+authority that owns it. Without that, the honest label stays `[unverified]`,
+even when the model fits.
+
+```{r grounded}
+# Adequate but unverified by default; grounded only with dated provenance.
+aci(model, sim$x, dt = sim$dt)@grounding
+aci(model, sim$x, dt = sim$dt,
+    mechanism = list(source = "validated against the OSSE truth",
+                     verified_on = as.Date("2026-06-14")))@grounding
+```
+
+This is ACI's guard against its own central limitation: the verdict is only as
+good as the model, so a model the data reject -- or one whose standing as the
+true mechanism has never been checked -- is never allowed to pass as a grounded
+causal claim.
+
+## The lead-time without re-smoothing
+
+The decision lead-time integrates a divergence profile over an expanding future
+window. Formed directly, each window length reruns the smoother on a truncated
+series. `kalmix` instead grows the smoothed estimate of the anchor state forward
+in place as each later observation is assimilated -- a fixed-point smoother
+recursion that accumulates the Rauch-Tung-Striebel gains -- so the whole profile
+costs one filter-smoother pass and a light forward recursion per anchor, with no
+re-smoothing. This `online` engine is the default; the `expanding` engine is
+retained as an independent cross-check, and the two agree to numerical
+precision.
+
+```{r engines}
+c(online    = causal_information_rate(model, sim$x, dt = sim$dt,
+                                      engine = "online"),
+  expanding = causal_information_rate(model, sim$x, dt = sim$dt,
+                                      engine = "expanding"))
+```
+
+Because the online recursion never truncates the series, it also applies to
+time-varying state-space models, where the expanding construction cannot: a
+model whose system matrices change step by step still yields a lead-time from a
+single forward pass.
+
 ## A real ENSO index
 
 The known-truth oscillator proves the read-out is internally consistent. As an

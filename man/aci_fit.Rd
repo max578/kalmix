@@ -11,7 +11,10 @@ aci_fit(
   lead_time = NA_real_,
   dt = 1,
   filter = kalman_fit(),
-  smoother = rts_fit()
+  smoother = rts_fit(),
+  grounding = "[unverified]",
+  grounding_reason = NA_character_,
+  adequacy = NULL
 )
 }
 \arguments{
@@ -36,6 +39,16 @@ in. Defaults to \code{1}, so the lead-time is in steps.}
 \item{filter}{The \link{kalman_fit} the read-out was computed from.}
 
 \item{smoother}{The \link{rts_fit} the read-out was computed from.}
+
+\item{grounding}{Character scalar -- the grounding token of the causal
+verdict, \code{"grounded"} or \code{"[unverified]"} (provenance_vocabulary.md §1).}
+
+\item{grounding_reason}{Character scalar -- a short label for why the verdict
+carries that token (\code{"grounded"}, \code{"mechanism_unverified"},
+\code{"model_inadequate"} or \code{"insufficient_data"}).}
+
+\item{adequacy}{The \link{innov_diag} model-adequacy diagnostics the grounding was
+read from.}
 }
 \value{
 An S7 object of class \code{aci_fit}.
@@ -59,6 +72,8 @@ about the state at \code{t}.
 Other causal: 
 \code{\link{aci}()},
 \code{\link{causal_information_rate}()},
+\code{\link{innov_diag}()},
+\code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},
 \code{\link{its_fit}()}
 }

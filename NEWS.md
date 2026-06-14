@@ -1,3 +1,36 @@
+# kalmix (development version)
+
+## New features
+
+* **Model-adequacy grounding for assimilative causal inference.**
+  `innovation_diagnostics()` runs the standard state-space residual battery --
+  a Ljung-Box whiteness test, a normalised-innovation-squared scale test and a
+  Jarque-Bera normality test on the standardised one-step-ahead innovations --
+  and reduces it to an adequacy verdict. `aci()` now grounds its read-out
+  through it: a model the innovations reject abstains with a `[unverified]`
+  token (`grounding`, `grounding_reason` and `adequacy` are new `aci_fit`
+  fields), and a verdict is labelled `"grounded"` only when an adequate model
+  carries declared, dated mechanism provenance through the new `mechanism`
+  argument. The grounding tokens follow the orchestra's provenance vocabulary,
+  so passing the diagnostics establishes self-consistency without, on its own,
+  claiming external verification.
+
+* **Adaptive online smoother for the causal information rate.**
+  `causal_information_rate()` gains an `engine` argument. The default
+  `"online"` engine computes the objective rate of Andreou, Chen and Bollt
+  (2026, eq. 9) through a fixed-point smoother recursion that grows each
+  anchor's smoothed estimate forward in place, so the lead-time costs one
+  filter-smoother pass with no re-smoothing and now applies to time-varying
+  models. The previous re-smoothing construction is retained as
+  `engine = "expanding"` and cross-checks the online engine to numerical
+  precision.
+
+## Bug fixes
+
+* The NOAA Oceanic Nino Index external-oracle test now skips cleanly when the
+  `curl` package is absent, so `R CMD check` is clean on hosts without it
+  (the offline guard previously errored rather than skipping).
+
 # kalmix 0.2.0
 
 This development cycle adds the time-resolved assimilative-causal-inference
