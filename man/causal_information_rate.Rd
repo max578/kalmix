@@ -104,6 +104,7 @@ Andreou, M., Chen, N. and Bollt, E. (2026). Assimilative causal inference.
 Other causal: 
 \code{\link{aci}()},
 \code{\link{aci_fit}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innov_diag}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},

@@ -151,6 +151,10 @@ kalman_filter <- function(model, y) {
   p <- model@init_cov
   log_lik <- 0
   const <- d * log(2 * pi)
+  # A finite-df Student-t observation family runs the robust update; df = Inf
+  # (the Gaussian default) runs the exact closed-form update unchanged.
+  is_t <- identical(model@obs_family, "student_t") && is.finite(model@obs_df)
+  nu <- model@obs_df
 
   for (t in seq_len(n)) {
     a <- .at_step(model@transition, t)
@@ -168,25 +172,33 @@ kalman_filter <- function(model, y) {
     # Update -----------------------------------------------------------------
 
     e <- y[t, ] - as.numeric(b %*% x_pred)
-    s <- b %*% p_pred %*% t(b) + r
-    s_chol <- .safe_chol(s, "innovation covariance")
-    s_inv <- chol2inv(s_chol)
-    gain <- p_pred %*% t(b) %*% s_inv
 
-    x <- x_pred + as.numeric(gain %*% e)
-    p <- p_pred - gain %*% b %*% p_pred
-    p <- .symmetrise(p)
+    if (is_t) {
+      upd <- .kalman_update_t(x_pred, p_pred, b, r, e, nu)
+      x <- upd$x
+      p <- upd$p
+      s <- upd$s
+      log_lik <- log_lik + upd$loglik
+    } else {
+      s <- b %*% p_pred %*% t(b) + r
+      s_chol <- .safe_chol(s, "innovation covariance")
+      s_inv <- chol2inv(s_chol)
+      gain <- p_pred %*% t(b) %*% s_inv
+
+      x <- x_pred + as.numeric(gain %*% e)
+      p <- .symmetrise(p_pred - gain %*% b %*% p_pred)
+
+      # Prediction error decomposition (Gaussian) ----------------------------
+
+      log_det <- 2 * sum(log(diag(s_chol)))
+      quad <- sum(e * as.numeric(s_inv %*% e))
+      log_lik <- log_lik - 0.5 * (const + log_det + quad)
+    }
 
     filtered_mean[t, ] <- x
     filtered_cov[[t]] <- p
     innovation[t, ] <- e
     innovation_cov[[t]] <- s
-
-    # Prediction error decomposition -----------------------------------------
-
-    log_det <- 2 * sum(log(diag(s_chol)))
-    quad <- sum(e * as.numeric(s_inv %*% e))
-    log_lik <- log_lik - 0.5 * (const + log_det + quad)
   }
 
   kalman_fit(

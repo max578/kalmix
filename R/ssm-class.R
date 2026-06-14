@@ -46,6 +46,15 @@
 #'   vector of length `m`.
 #' @param init_cov The prior covariance of the initial state, an `m` by `m`
 #'   symmetric positive semi-definite matrix.
+#' @param obs_family The observation-noise family, `"gaussian"` (the default) or
+#'   `"student_t"`. A Student-t family gives a heavy-tailed observation model
+#'   whose filter is robust to outliers; `obs_cov` is then the t *scale* matrix
+#'   \eqn{R} rather than a covariance. See [kalman_filter()] for the recursion.
+#' @param obs_df The Student-t degrees of freedom \eqn{\nu} (a finite scalar
+#'   greater than two) when `obs_family = "student_t"`; ignored, and held at
+#'   `Inf`, for the Gaussian family. [estimate_obs_df()] selects it by profile
+#'   likelihood. As \eqn{\nu \to \infty} the Student-t model collapses to the
+#'   Gaussian one.
 #'
 #' @returns An S7 object of class `ssm`.
 #' @family state-space
@@ -86,6 +95,8 @@ ssm <- S7::new_class(
     obs_cov = S7::class_list,
     init_state = S7::class_double,
     init_cov = S7::class_double,
+    obs_family = S7::new_property(S7::class_character, default = "gaussian"),
+    obs_df = S7::new_property(S7::class_double, default = Inf),
     state_dim = S7::new_property(
       class = S7::class_integer,
       getter = function(self) length(self@init_state)
@@ -100,13 +111,17 @@ ssm <- S7::new_class(
                          state_cov,
                          obs_cov,
                          init_state,
-                         init_cov) {
+                         init_cov,
+                         obs_family = c("gaussian", "student_t"),
+                         obs_df = Inf) {
+    obs_family <- match.arg(obs_family)
     init_state <- as.numeric(init_state)
     m <- length(init_state)
     if (m < 1L) {
       cli::cli_abort("`init_state` must have at least one element.")
     }
     init_cov <- .as_square_matrix(init_cov, m, "init_cov")
+    obs_df <- if (identical(obs_family, "gaussian")) Inf else as.numeric(obs_df)
 
     S7::new_object(
       S7::S7_object(),
@@ -115,7 +130,9 @@ ssm <- S7::new_class(
       state_cov = .as_matrix_list(state_cov, "state_cov"),
       obs_cov = .as_matrix_list(obs_cov, "obs_cov"),
       init_state = init_state,
-      init_cov = init_cov
+      init_cov = init_cov,
+      obs_family = obs_family,
+      obs_df = obs_df
     )
   },
   validator = function(self) {
@@ -126,9 +143,14 @@ ssm <- S7::new_class(
 #' @export
 S7::method(print, ssm) <- function(x, ...) {
   shape <- function(lst) if (length(lst) == 1L) "static" else "time-varying"
+  kind <- if (identical(x@obs_family, "student_t")) {
+    sprintf("Student-t obs (df %.3g)", x@obs_df)
+  } else {
+    "linear-Gaussian"
+  }
   cat(sprintf(
-    "<ssm>: linear-Gaussian state-space model (state %d, obs %d)\n",
-    x@state_dim, x@obs_dim
+    "<ssm>: %s state-space model (state %d, obs %d)\n",
+    kind, x@state_dim, x@obs_dim
   ))
   cat(sprintf("  transition  : %s\n", shape(x@transition)))
   cat(sprintf("  observation : %s\n", shape(x@observation)))

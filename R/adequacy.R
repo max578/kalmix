@@ -153,6 +153,9 @@
 #' @param lags Integer scalar -- the Ljung-Box lag.
 #' @param n_obs Integer scalar -- the series length.
 #' @param obs_dim Integer scalar -- the observation dimension.
+#' @param obs_family Character scalar -- the observation-noise family the
+#'   diagnostics were taken under (`"gaussian"` or `"student_t"`), which selects
+#'   the reference distribution of the scale and family-fit tests.
 #' @param reason Character scalar -- a short label for the verdict
 #'   (`"adequate"`, `"model_inadequate"` or `"insufficient_data"`).
 #'
@@ -173,6 +176,7 @@ innov_diag <- S7::new_class(
     lags = S7::new_property(S7::class_integer, default = NA_integer_),
     n_obs = S7::new_property(S7::class_integer, default = NA_integer_),
     obs_dim = S7::new_property(S7::class_integer, default = NA_integer_),
+    obs_family = S7::new_property(S7::class_character, default = "gaussian"),
     reason = S7::new_property(S7::class_character, default = NA_character_)
   )
 )
@@ -248,16 +252,22 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
     cli::cli_abort("`lags` must be a positive integer scalar.")
   }
 
+  model <- object@model
+  is_t <- identical(model@obs_family, "student_t") && is.finite(model@obs_df)
+  family <- if (is_t) "student_t" else "gaussian"
+
   # Too short to judge: fail closed to an indeterminate verdict rather than
   # assert adequacy the data cannot support.
   if (n < max(20L, 3L * lags)) {
     return(innov_diag(
       standardised = w, lags = lags, alpha = alpha,
-      n_obs = n, obs_dim = d, adequate = NA, reason = "insufficient_data"
+      n_obs = n, obs_dim = d, obs_family = family,
+      adequate = NA, reason = "insufficient_data"
     ))
   }
 
   # Whiteness: a Ljung-Box test per observation dimension, Bonferroni-combined.
+  # Serial correlation is family-agnostic, so this test is unchanged for both.
   white_each <- vapply(
     seq_len(d),
     function(j) stats::Box.test(w[, j], lag = lags, type = "Ljung-Box")$p.value,
@@ -265,18 +275,26 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
   )
   p_white <- min(min(white_each) * d, 1)
 
-  # Scale: the total normalised innovation squared is chi-squared with n*d
-  # degrees of freedom under correct specification; a two-sided tail catches an
-  # over- or under-stated noise level.
-  nis <- sum(w^2)
-  df_nis <- n * d
-  p_cal <- 2 * min(
-    stats::pchisq(nis, df_nis),
-    stats::pchisq(nis, df_nis, lower.tail = FALSE)
-  )
+  if (is_t) {
+    # Student-t family: the standardised innovations are t-, not Gaussian-,
+    # distributed, so the scale and family-fit tests read off the t-PIT.
+    tt <- .t_scale_family_tests(w, model@obs_df)
+    p_cal <- tt$scale_p
+    p_norm <- tt$family_p
+  } else {
+    # Scale: the total normalised innovation squared is chi-squared with n*d
+    # degrees of freedom under correct specification; a two-sided tail catches an
+    # over- or under-stated noise level.
+    nis <- sum(w^2)
+    df_nis <- n * d
+    p_cal <- 2 * min(
+      stats::pchisq(nis, df_nis),
+      stats::pchisq(nis, df_nis, lower.tail = FALSE)
+    )
 
-  # Normality of the pooled standardised innovations.
-  p_norm <- .jarque_bera_p(as.numeric(w))
+    # Normality of the pooled standardised innovations.
+    p_norm <- .jarque_bera_p(as.numeric(w))
+  }
 
   finite_p <- c(p_white, p_cal, p_norm)
   finite_p <- finite_p[is.finite(finite_p)]
@@ -294,6 +312,7 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
     lags = lags,
     n_obs = n,
     obs_dim = d,
+    obs_family = family,
     reason = if (adequate) "adequate" else "model_inadequate"
   )
 }
@@ -335,17 +354,21 @@ S7::method(print, innov_diag) <- function(x, ...) {
   } else {
     "INADEQUATE"
   }
+  is_t <- identical(x@obs_family, "student_t")
+  scale_lab <- if (is_t) "scale (NIS, t-PIT)     " else "scale (NIS chi-squared) "
+  fam_lab <- if (is_t) "family-fit (t-PIT JB)  " else "normality (Jarque-Bera) "
   cat(sprintf(
-    "<innov_diag>: state-space model adequacy -- %s\n", verdict
+    "<innov_diag>: state-space model adequacy -- %s%s\n", verdict,
+    if (is_t) " (Student-t obs)" else ""
   ))
   cat(sprintf(
     "  whiteness (Ljung-Box)   : %s\n", .format_p(x@whiteness_p)
   ))
   cat(sprintf(
-    "  scale (NIS chi-squared) : %s\n", .format_p(x@calibration_p)
+    "  %s: %s\n", scale_lab, .format_p(x@calibration_p)
   ))
   cat(sprintf(
-    "  normality (Jarque-Bera) : %s\n", .format_p(x@normality_p)
+    "  %s: %s\n", fam_lab, .format_p(x@normality_p)
   ))
   if (!is.na(x@p_value)) {
     cat(sprintf(

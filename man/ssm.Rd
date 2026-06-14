@@ -4,7 +4,16 @@
 \alias{ssm}
 \title{A linear-Gaussian state-space model}
 \usage{
-ssm(transition, observation, state_cov, obs_cov, init_state, init_cov)
+ssm(
+  transition,
+  observation,
+  state_cov,
+  obs_cov,
+  init_state,
+  init_cov,
+  obs_family = c("gaussian", "student_t"),
+  obs_df = Inf
+)
 }
 \arguments{
 \item{transition}{The state transition matrix \eqn{A} (\code{m} by \code{m}), or a
@@ -24,6 +33,17 @@ vector of length \code{m}.}
 
 \item{init_cov}{The prior covariance of the initial state, an \code{m} by \code{m}
 symmetric positive semi-definite matrix.}
+
+\item{obs_family}{The observation-noise family, \code{"gaussian"} (the default) or
+\code{"student_t"}. A Student-t family gives a heavy-tailed observation model
+whose filter is robust to outliers; \code{obs_cov} is then the t \emph{scale} matrix
+\eqn{R} rather than a covariance. See \code{\link[=kalman_filter]{kalman_filter()}} for the recursion.}
+
+\item{obs_df}{The Student-t degrees of freedom \eqn{\nu} (a finite scalar
+greater than two) when \code{obs_family = "student_t"}; ignored, and held at
+\code{Inf}, for the Gaussian family. \code{\link[=estimate_obs_df]{estimate_obs_df()}} selects it by profile
+likelihood. As \eqn{\nu \to \infty} the Student-t model collapses to the
+Gaussian one.}
 }
 \value{
 An S7 object of class \code{ssm}.

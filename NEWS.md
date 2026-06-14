@@ -2,6 +2,21 @@
 
 ## New features
 
+* **Heavy-tailed (Student-t) observation model.** `ssm()` gains an
+  `obs_family` argument (`"gaussian"`, the default, or `"student_t"`) and an
+  `obs_df` degrees-of-freedom argument. A Student-t family runs a deterministic
+  outlier-robust Kalman filter (the variational fixed point of Agamennoni et
+  al. 2012 over the Gaussian scale-mixture representation of the t), so an
+  outlier is down-weighted rather than allowed to distort the state. The new
+  `estimate_obs_df()` selects the degrees of freedom by profile likelihood --
+  the grid includes `Inf`, and a likelihood-ratio parsimony margin keeps
+  light-tailed data Gaussian. `innovation_diagnostics()` is now family-aware:
+  under a Student-t model the scale and family-fit tests read off the t
+  probability-integral transform, so the adequacy guard can *certify* a causal
+  read-out on a genuinely heavy-tailed series (climate extremes, financial
+  returns) where the Gaussian model can only abstain. The Gaussian path is
+  unchanged, and the t model collapses to it as the degrees of freedom grow.
+
 * **Model-adequacy grounding for assimilative causal inference.**
   `innovation_diagnostics()` runs the standard state-space residual battery --
   a Ljung-Box whiteness test, a normalised-innovation-squared scale test and a

@@ -127,6 +127,22 @@
       return(sprintf("each `obs_cov` matrix must be %d by %d", d, d))
     }
   }
+
+  # Observation family: gaussian (df = Inf) or student_t (finite df > 2, so the
+  # observation variance -- and the F-reference of the scale diagnostic -- exist.
+  if (length(self@obs_family) != 1L ||
+      !self@obs_family %in% c("gaussian", "student_t")) {
+    return("`obs_family` must be \"gaussian\" or \"student_t\"")
+  }
+  if (identical(self@obs_family, "gaussian")) {
+    if (!(length(self@obs_df) == 1L && is.infinite(self@obs_df))) {
+      return("a gaussian `obs_family` requires `obs_df` = Inf")
+    }
+  } else {
+    if (length(self@obs_df) != 1L || !is.finite(self@obs_df) || self@obs_df <= 2) {
+      return("a student_t `obs_family` requires a finite `obs_df` greater than 2")
+    }
+  }
   NULL
 }
 
