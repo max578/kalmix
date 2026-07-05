@@ -49,6 +49,22 @@ test_that("mixture_filter() collapsed state matches a single Kalman filter", {
   expect_equal(mix@state_mean[, 1L], one@filtered_mean[, 1L], tolerance = 1e-6)
 })
 
+test_that("mixture_filter() log-likelihood matches a single Kalman filter", {
+  ## With identical regimes the per-step mixture evidence is the single
+  ## model's predictive density (the regime weights sum to one over identical
+  ## components), so the log-likelihoods must agree exactly, not just the
+  ## collapsed means.
+  m <- ssm(
+    transition = 0.9, observation = 1, state_cov = 0.2, obs_cov = 1,
+    init_state = 0, init_cov = 5
+  )
+  withr::local_seed(3L)
+  y <- as.numeric(stats::arima.sim(list(ar = 0.5), n = 80))
+  mix <- mixture_filter(list(m, m), y)
+  one <- kalman_filter(m, y)
+  expect_equal(mix@log_lik, one@log_lik, tolerance = 1e-8)
+})
+
 test_that("mixture_filter() validates models, transition and init_prob", {
   m <- ssm(
     transition = 1, observation = 1, state_cov = 0.1, obs_cov = 1,

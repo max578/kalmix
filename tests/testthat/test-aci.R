@@ -185,10 +185,9 @@ test_that("real ENSO index: ACI runs on the NOAA ONI as an external oracle", {
   ## NOAA Oceanic Nino Index and the ACI read-out is computed; the assertions
   ## are sanity bounds the physics implies (a positive, multi-month but
   ## sub-decadal predictability horizon, and a smoother that tracks the index),
-  ## not point values. Gated so offline and CRAN runs skip it.
+  ## not point values. The recorded index is a local fixture, so no network
+  ## and no curl are needed; only CRAN runs skip it (runtime).
   skip_on_cran()
-  skip_if_not_installed("curl")
-  skip_if_offline()
 
   fixture <- testthat::test_path("fixtures", "oni_noaa.csv")
   skip_if_not(file.exists(fixture), "ONI fixture not present")
