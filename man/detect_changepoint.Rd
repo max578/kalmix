@@ -9,10 +9,10 @@ detect_changepoint(x, penalty = "mbic", min_segment = 5L)
 \arguments{
 \item{x}{A numeric vector — the sequence to scan.}
 
-\item{penalty}{Numeric scalar, \code{"mbic"}, or \code{"sic"}. A number is used
-directly as the per-split penalty on the statistic; \code{"mbic"} (the default)
-uses \eqn{3\log(n)} and \code{"sic"} uses \eqn{\log(n)}. Larger penalties yield
-fewer change-points.}
+\item{penalty}{Numeric scalar, \code{"mbic"}, \code{"sic"}, or \code{"bic"}. A number is
+used directly as the per-split penalty on the statistic; \code{"mbic"} (the
+default) uses \eqn{3\log(n)} and \code{"sic"} (alias \code{"bic"}) uses
+\eqn{\log(n)}. Larger penalties yield fewer change-points.}
 
 \item{min_segment}{Integer scalar — the shortest admissible segment length,
 so a single outlier is not declared its own segment. Defaults to \code{5}.}
@@ -39,14 +39,16 @@ The penalty matters more than the statistic. Under the null of one
 homogeneous segment the best-split statistic is far from zero -- on a
 length-100 series its null mean is near \code{7} and its 95th percentile near
 \code{13} -- so the plain Schwarz penalty \eqn{\log(n)} (about \code{4.6} at that
-length) over-segments badly. The default \code{"mbic"} penalty here is the
-modified Bayesian information criterion form \eqn{3\log(n)}, which accounts
-for the change location being estimated; on homogeneous Gaussian series it
-was calibrated to a false-detection rate at or below \verb{6\\\%} from \code{n = 100}
-upward while retaining full power against a one-standard-deviation mean
-shift. The weaker \code{"sic"} (\eqn{\log(n)}) penalty and any numeric value are
-offered for callers who want to tune sensitivity deliberately, accepting
-more false positives.
+length) over-segments badly. The default \code{"mbic"} penalty here is an
+empirically calibrated \eqn{3\log(n)}, strengthened in the spirit of the
+modified Bayesian information criterion of Zhang and Siegmund (2007) to
+account for the change location being estimated (their criterion is a
+different functional; the name is kept for the shared motivation). On
+homogeneous Gaussian series it was calibrated to a false-detection rate at
+or below \verb{6\\\%} from \code{n = 100} upward while retaining full power against a
+one-standard-deviation mean shift. The weaker \code{"sic"} (\eqn{\log(n)},
+alias \code{"bic"}) penalty and any numeric value are offered for callers who
+want to tune sensitivity deliberately, accepting more false positives.
 }
 \examples{
 set.seed(1)
@@ -60,6 +62,12 @@ means in the analysis of variance. \emph{Biometrics}, 30(3), 507--512. (Binary
 segmentation.) Killick, R., Fearnhead, P. and Eckley, I. A. (2012). Optimal
 detection of changepoints with a linear computational cost. \emph{Journal of the
 American Statistical Association}, 107(500), 1590--1598.
+
+Zhang, N. R. and Siegmund, D. O. (2007). A modified Bayes information
+criterion with applications to the analysis of comparative genomic
+hybridization data. \emph{Biometrics}, 63(1), 22--32. (The motivation for
+strengthening the per-split penalty; the \code{"mbic"} value here is an
+empirically calibrated \eqn{3\log(n)}, not their functional.)
 }
 \seealso{
 Other change-point: 

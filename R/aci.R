@@ -123,9 +123,11 @@ aci_fit <- S7::new_class(
 #' read-out is self-contained, and cross-checks the value against
 #' `kernR::relative_entropy()` in its test suite when kernR is installed.
 #'
-#' @param mu_p Numeric vector -- the mean of `p` (the smoother posterior).
+#' @param mu_p Numeric vector -- the mean of `p`, the integrating density (the
+#'   smoother posterior in eq. 7, the complete smoother in eq. 8).
 #' @param sigma_p A `k` by `k` covariance matrix of `p`.
-#' @param mu_q Numeric vector -- the mean of `q` (the filter posterior).
+#' @param mu_q Numeric vector -- the mean of `q`, the reference density (the
+#'   filter posterior in eq. 7, the lagged estimate in eq. 8).
 #' @param sigma_q A `k` by `k` covariance matrix of `q`, positive definite (it
 #'   is inverted through its Cholesky factor).
 #'
@@ -146,7 +148,7 @@ aci_fit <- S7::new_class(
   sigma_p <- as.matrix(sigma_p)
   sigma_q <- as.matrix(sigma_q)
 
-  q_chol <- .safe_chol(sigma_q, "filter covariance")
+  q_chol <- .safe_chol(sigma_q, "reference covariance")
   q_inv <- chol2inv(q_chol)
   delta <- mu_q - mu_p
 
@@ -175,10 +177,17 @@ aci_fit <- S7::new_class(
 #'
 #' By default the objective causal information rate and the decision lead-time
 #' are also computed (`lead_time = TRUE`), through [causal_information_rate()]:
-#' the divergence between an expanding-future-window smoother and the complete
+#' the divergence of the complete smoother from an expanding-future-window
 #' smoother is integrated into a single threshold-free lead-time in the time
 #' units of the series (their eqs. 8--9). Set `lead_time = FALSE` to return the
 #' causal information series alone, which is cheaper for long series.
+#'
+#' Under a Student-t observation family (`obs_family = "student_t"`) the
+#' filter pass is the outlier-robust variational update, whose per-step
+#' posteriors are Gaussian approximations. The relative-entropy chain treats
+#' those approximations as exact Gaussians, so the causal information and
+#' lead-time inherit the variational approximation; the Gaussian family
+#' involves no approximation.
 #'
 #' The recovered state is interpretable as a cause of the observed series only
 #' under the maintained assumption that the [ssm] is the data-generating
@@ -330,9 +339,11 @@ aci <- function(model,
 #' units of the series.
 #'
 #' At an anchor step \eqn{t_0} the smoother is recomputed on an expanding future
-#' window: the relative entropy \eqn{D(L)} between the smoother that has seen the
-#' series only up to \eqn{t_0 + L} and the complete smoother falls from its
-#' filter value at \eqn{L = 0} towards zero as the window grows. The subjective
+#' window: the relative entropy \eqn{D(L)} of the complete smoother from the
+#' smoother that has seen the series only up to \eqn{t_0 + L} (their eq. 8,
+#' with the complete smoother as the integrating density) falls from its
+#' filter value at \eqn{L = 0} -- the per-step causal information of eq. 7 --
+#' towards zero as the window grows. The subjective
 #' range at tolerance \eqn{\varepsilon} is
 #' \eqn{\tau_\varepsilon = \inf\{L : D(L) \le \varepsilon\}}; integrating the
 #' tolerance out gives the threshold-free range
@@ -468,9 +479,11 @@ causal_information_rate <- function(model,
 #' Forms the expanding-future-window divergence profile \eqn{D(L)} at anchor
 #' `t0` and reduces it to the threshold-free range
 #' \eqn{(1/M)\int_0^{L_{\max}} D(L)\, dL} by the trapezoidal rule. \eqn{D(0)} is
-#' the filter-from-complete-smoother relative entropy; \eqn{D(L)} for `L > 0`
-#' reruns the smoother on the series truncated at `t0 + L`. The range is
-#' returned in steps; the caller scales by `dt`.
+#' the complete-smoother-from-filter relative entropy (the per-step causal
+#' information of eq. 7); \eqn{D(L)} for `L > 0` reruns the smoother on the
+#' series truncated at `t0 + L` and measures the complete smoother from that
+#' lagged estimate (eq. 8). The range is returned in steps; the caller scales
+#' by `dt`.
 #'
 #' @param model An [ssm].
 #' @param y The `n` by `d` observation matrix.
@@ -506,7 +519,7 @@ causal_information_rate <- function(model,
           cov = smoothed@smoothed_cov[[t0]]
         )
       }
-      .gaussian_relative_entropy(window$mean, window$cov, mc, pc)
+      .gaussian_relative_entropy(mc, pc, window$mean, window$cov)
     },
     numeric(1L)
   )
@@ -552,7 +565,7 @@ causal_information_rate <- function(model,
   phi <- diag(1, m)
   x_jm <- filter@filtered_mean[t0, ]
   p_jm <- filter@filtered_cov[[t0]]
-  divergence[want == 0L] <- .gaussian_relative_entropy(x_jm, p_jm, mc, pc)
+  divergence[want == 0L] <- .gaussian_relative_entropy(mc, pc, x_jm, p_jm)
 
   for (lag in seq_len(max_lag)) {
     t <- t0 + lag
@@ -572,7 +585,7 @@ causal_information_rate <- function(model,
         (filter@filtered_cov[[t]] - filter@predicted_cov[[t]]) %*% t(phi)
     )
     if (any(want == lag)) {
-      divergence[want == lag] <- .gaussian_relative_entropy(x_jm, p_jm, mc, pc)
+      divergence[want == lag] <- .gaussian_relative_entropy(mc, pc, x_jm, p_jm)
     }
   }
 

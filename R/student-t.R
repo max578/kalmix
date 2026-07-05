@@ -25,7 +25,8 @@
 #'   `obs_family` is ignored; each grid value is evaluated on a clone.
 #' @param y A numeric vector or `n` by `d` matrix of observations.
 #' @param df_grid A numeric vector of candidate degrees of freedom to profile
-#'   over. Must be positive; may include `Inf`. Defaults to
+#'   over. Every value must exceed `2` (the [ssm] validator requires a finite
+#'   observation variance); may include `Inf`. Defaults to
 #'   `c(3, 4, 5, 7, 10, 15, 30, Inf)`.
 #' @param lrt_margin The parsimony margin in log-likelihood units. The Gaussian
 #'   model (`df = Inf`) is preferred unless a finite `df` improves the

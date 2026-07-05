@@ -53,9 +53,11 @@ units of the series.
 }
 \details{
 At an anchor step \eqn{t_0} the smoother is recomputed on an expanding future
-window: the relative entropy \eqn{D(L)} between the smoother that has seen the
-series only up to \eqn{t_0 + L} and the complete smoother falls from its
-filter value at \eqn{L = 0} towards zero as the window grows. The subjective
+window: the relative entropy \eqn{D(L)} of the complete smoother from the
+smoother that has seen the series only up to \eqn{t_0 + L} (their eq. 8,
+with the complete smoother as the integrating density) falls from its
+filter value at \eqn{L = 0} -- the per-step causal information of eq. 7 --
+towards zero as the window grows. The subjective
 range at tolerance \eqn{\varepsilon} is
 \eqn{\tau_\varepsilon = \inf\{L : D(L) \le \varepsilon\}}; integrating the
 tolerance out gives the threshold-free range

@@ -81,8 +81,10 @@
     gain <- p_pred %*% t(b) %*% s_inv
     x <- x_pred + as.numeric(gain %*% e)
     p <- .symmetrise(p_pred - gain %*% b %*% p_pred)
-    # Expected squared Mahalanobis residual under the t-scale R: the data term
-    # plus the state-uncertainty trace term (Agamennoni 2012, eq. 19).
+    # Expected squared Mahalanobis residual under the t-scale R: the posterior
+    # expectation of (y - Bx)' R^{-1} (y - Bx) is the data term at the
+    # posterior mean plus the state-uncertainty trace tr(R^{-1} B P B')
+    # (Agamennoni, Nieto and Nebot 2012).
     resid <- e - as.numeric(b %*% (x - x_pred))
     delta2 <- sum(resid * as.numeric(r_inv %*% resid)) +
       sum(diag(r_inv %*% b %*% p %*% t(b)))

@@ -18,7 +18,8 @@ estimate_obs_df(
 \item{y}{A numeric vector or \code{n} by \code{d} matrix of observations.}
 
 \item{df_grid}{A numeric vector of candidate degrees of freedom to profile
-over. Must be positive; may include \code{Inf}. Defaults to
+over. Every value must exceed \code{2} (the \link{ssm} validator requires a finite
+observation variance); may include \code{Inf}. Defaults to
 \code{c(3, 4, 5, 7, 10, 15, 30, Inf)}.}
 
 \item{lrt_margin}{The parsimony margin in log-likelihood units. The Gaussian

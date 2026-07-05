@@ -3,10 +3,12 @@
 # mixture_filter() filters a series that switches between a finite set of
 # linear-Gaussian regimes, each its own ssm, with a Markov chain governing the
 # regime. It is a self-contained Gaussian pseudo-Bayesian filter of order one
-# (GPB1, equivalently the interacting-multiple-model collapse): at each step
-# every regime is advanced by one Kalman predict-update from the single mixed
-# prior, the regimes are reweighted by their evidence and the regime-transition
-# prior, and the per-regime posteriors are collapsed back to one Gaussian. This
+# (GPB1; related to but distinct from the IMM filter, which mixes per-regime
+# priors under the transition before prediction and carries k Gaussians
+# between steps): at each step every regime is advanced by one Kalman
+# predict-update from the single mixed prior, the regimes are reweighted by
+# their evidence and the regime-transition prior, and the per-regime
+# posteriors are collapsed back to one Gaussian. This
 # keeps the recursion exact-per-step and linear in the number of regimes, with
 # no dependence on a sibling package.
 #

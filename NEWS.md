@@ -53,6 +53,17 @@
 
 ## Bug fixes
 
+* **The causal-influence-range profile now matches its published
+  definition.** The expanding-window divergence behind
+  `causal_information_rate()` and the `aci()` lead-time measured the lagged
+  estimate from the complete smoother; the published definition integrates
+  over the complete smoother (the reverse relative-entropy direction), and
+  its normaliser is then exactly the per-step causal information at the
+  anchor. Both engines were corrected together, so lead-times shift slightly
+  in general; the two engines still agree to numerical tolerance and the
+  recorded ENSO sanity bounds are unchanged. A dated equation-grounding
+  record now accompanies the package sources.
+
 * **`kalmix_filter()` now tracks a spread with a non-zero long-run mean.** The
   per-regime state-space models carried no intercept term, so the filtered
   state was contracted toward zero rather than toward the fitted long-run
