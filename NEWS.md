@@ -1,9 +1,9 @@
-# kalmix (development version)
+# kalmix 0.5.0 (2026-07-05)
 
 ## New features
 
-* **Intercepts (control inputs).** `ssm()` gains `state_intercept`
-  (\eqn{c_t}) and `obs_intercept` (\eqn{d_t}) in the standard
+* **Intercepts (control inputs).** `ssm()` gains `state_intercept` (`c_t`)
+  and `obs_intercept` (`d_t`) in the standard
   Durbin-Koopman form, static or time-varying, defaulting to zero. They
   thread through both filter families, the regime machinery and
   `ssm_fit()`. A stationary state with a non-zero long-run mean is now a
