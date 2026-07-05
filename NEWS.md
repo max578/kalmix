@@ -1,3 +1,38 @@
+# kalmix (development version)
+
+## New features
+
+* **Missing observations.** A fully `NA` observation (row) is now a missing
+  observation everywhere: `kalman_filter()` runs a prediction-only step
+  under both observation families, `mixture_filter()` carries the regime
+  chain prior through the gap, the HMM verbs use a flat emission, and
+  `innovation_diagnostics()` tests the complete steps. Gappy series
+  (market holidays, sensor dropouts, index gaps) fit, filter, smooth and
+  certify directly. Partially missing multivariate rows are refused with a
+  clear error. The gappy filter and smoother are pinned to a direct
+  joint-Gaussian conditioning oracle at every step, and the gappy
+  log-likelihood to the joint density of the observed entries.
+
+* **Maximum-likelihood estimation.** The new `ssm_fit()` estimates the
+  process covariance, the observation covariance and (optionally) the
+  transition matrix of an `ssm` by maximising the prediction-error
+  log-likelihood over log-Cholesky factors, from a deterministic
+  multi-start ladder, with delta-method standard errors. The returned
+  `ssm_mle` carries a fitted `ssm` ready for every verb. Fitted variances
+  agree with `stats::StructTS` on nested models and recover known
+  parameters in simulation within their standard errors.
+
+* **Regime certification.** `mixture_filter()` and `kalmix_filter()` now
+  expose the collapsed one-step innovations and predictive covariances on
+  `regime_fit`, plus (univariate) the exact probability integral transform
+  of each observation under its mixture predictive.
+  `innovation_diagnostics()` accepts a `regime_fit` and tests the PIT
+  (reported as `obs_family = "gaussian_mixture"`), so a regime-switching
+  model can be certified directly; the collapsed-Gaussian reference would
+  wrongly fail a well-specified mixture, whose innovations are
+  heavy-tailed relative to one Gaussian by construction. The full `aci()`
+  read-out on a regime fit awaits a regime smoother and says so.
+
 # kalmix 0.3.0 (2026-07-05)
 
 ## Breaking changes
