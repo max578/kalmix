@@ -46,8 +46,8 @@ Imports:
     stats,
     cli
 Suggests:
-    proxymix,
     kernR,
+    mvtnorm,
     testthat (>= 3.0.0),
     withr,
     knitr,
@@ -60,6 +60,7 @@ Collate:
     'linalg-internal.R'
     'ssm-internal.R'
     'ssm-class.R'
+    'student-t-internal.R'
     'kalman.R'
     'mixture-internal.R'
     'mixture.R'
@@ -68,6 +69,7 @@ Collate:
     'changepoint.R'
     'its-causal.R'
     'adequacy.R'
+    'student-t.R'
     'aci.R'
     'kalmix-classes.R'
     'spread.R'

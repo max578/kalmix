@@ -14,7 +14,7 @@ set.seed(1)
 library(kalmix)
 ```
 
-Many series are not smooth -- they switch abruptly between states or shift
+Many series are not smooth: they switch abruptly between states or shift
 their mean at unknown times. `kalmix` handles three flavours of this:
 change-point detection for abrupt shifts in level, hidden Markov models for
 recurring discrete states, and the regime-switching mixture filter for series
@@ -25,7 +25,7 @@ kalmix*.
 ## Change-point detection
 
 `detect_changepoint()` finds shifts in the mean of a sequence. We simulate a
-series with two known shifts -- at index 50 and index 100 -- and recover them:
+series with two known shifts, at index 50 and index 100, and recover them:
 
 ```{r changepoint}
 x <- c(rnorm(50, mean = 0), rnorm(50, mean = 4), rnorm(50, mean = 1))
@@ -49,7 +49,7 @@ and recovers the three segment means.
 
 ### The penalty controls over-segmentation
 
-The hard part of change-point detection is not finding a split -- it is
+The hard part of change-point detection is not finding a split. It is
 deciding when *not* to. On a single homogeneous segment the best available
 split still improves the fit by chance, so an unpenalised search would shatter
 a flat series into spurious pieces. `detect_changepoint()` guards against this
@@ -77,8 +77,8 @@ finite Markov chain over hidden states, each emitting a Gaussian observation.
 `hmm()` builds the model, `hmm_filter()` gives the state posteriors, and
 `hmm_viterbi()` returns the single most likely state path.
 
-We build a two-state mean-shift model -- a low state near `0` and a high state
-near `4` -- and simulate from it:
+We build a two-state mean-shift model (a low state near `0` and a high state
+near `4`) and simulate from it:
 
 ```{r hmm-build}
 model <- hmm(
@@ -116,8 +116,8 @@ mtext("P(high state)", side = 4, line = 2)
 
 The smoothed posterior (blue) rises to near one over the central high-state
 block and falls back to near zero on either side. The difference between the
-two read-outs is subtle but real: the Viterbi path is *jointly* optimal -- the
-single most likely sequence -- while the smoothed mode is optimal at each step
+two read-outs is subtle but real: the Viterbi path is *jointly* optimal, the
+single most likely sequence, while the smoothed mode is optimal at each step
 taken on its own.
 
 ## References

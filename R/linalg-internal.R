@@ -6,6 +6,8 @@
 # non-positive-definite, and a log-Gaussian-density evaluator the mixture and
 # HMM filters share.
 
+# Matrix guards ---------------------------------------------------------------
+
 #' Cholesky factor of a covariance, with a clear error on failure
 #'
 #' Returns the upper-triangular Cholesky factor of a symmetric positive-definite
@@ -44,6 +46,8 @@
 .symmetrise <- function(x) {
   (x + t(x)) / 2
 }
+
+# Densities and weights -------------------------------------------------------
 
 #' Log-density of a multivariate Gaussian
 #'

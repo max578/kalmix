@@ -9,6 +9,8 @@
 # clears a penalty -- which keeps the search exact-per-segment and transparent.
 # A penalised criterion (BIC by default) guards against spurious splits.
 
+# The changepoint_fit class ---------------------------------------------------
+
 #' A change-point detection result
 #'
 #' An S7 object holding the output of [detect_changepoint()]: the detected
@@ -39,6 +41,8 @@ changepoint_fit <- S7::new_class(
   )
 )
 
+# The detection verb ----------------------------------------------------------
+
 #' Detect change-points in the mean of a sequence
 #'
 #' Finds shifts in the mean of a Gaussian sequence by binary segmentation on
@@ -58,20 +62,22 @@ changepoint_fit <- S7::new_class(
 #' homogeneous segment the best-split statistic is far from zero -- on a
 #' length-100 series its null mean is near `7` and its 95th percentile near
 #' `13` -- so the plain Schwarz penalty \eqn{\log(n)} (about `4.6` at that
-#' length) over-segments badly. The default `"mbic"` penalty here is the
-#' modified Bayesian information criterion form \eqn{3\log(n)}, which accounts
-#' for the change location being estimated; on homogeneous Gaussian series it
-#' was calibrated to a false-detection rate at or below `6\%` from `n = 100`
-#' upward while retaining full power against a one-standard-deviation mean
-#' shift. The weaker `"sic"` (\eqn{\log(n)}) penalty and any numeric value are
-#' offered for callers who want to tune sensitivity deliberately, accepting
-#' more false positives.
+#' length) over-segments badly. The default `"mbic"` penalty here is an
+#' empirically calibrated \eqn{3\log(n)}, strengthened in the spirit of the
+#' modified Bayesian information criterion of Zhang and Siegmund (2007) to
+#' account for the change location being estimated (their criterion is a
+#' different functional; the name is kept for the shared motivation). On
+#' homogeneous Gaussian series it was calibrated to a false-detection rate at
+#' or below `6\%` from `n = 100` upward while retaining full power against a
+#' one-standard-deviation mean shift. The weaker `"sic"` (\eqn{\log(n)},
+#' alias `"bic"`) penalty and any numeric value are offered for callers who
+#' want to tune sensitivity deliberately, accepting more false positives.
 #'
 #' @param x A numeric vector — the sequence to scan.
-#' @param penalty Numeric scalar, `"mbic"`, or `"sic"`. A number is used
-#'   directly as the per-split penalty on the statistic; `"mbic"` (the default)
-#'   uses \eqn{3\log(n)} and `"sic"` uses \eqn{\log(n)}. Larger penalties yield
-#'   fewer change-points.
+#' @param penalty Numeric scalar, `"mbic"`, `"sic"`, or `"bic"`. A number is
+#'   used directly as the per-split penalty on the statistic; `"mbic"` (the
+#'   default) uses \eqn{3\log(n)} and `"sic"` (alias `"bic"`) uses
+#'   \eqn{\log(n)}. Larger penalties yield fewer change-points.
 #' @param min_segment Integer scalar — the shortest admissible segment length,
 #'   so a single outlier is not declared its own segment. Defaults to `5`.
 #'
@@ -83,6 +89,12 @@ changepoint_fit <- S7::new_class(
 #' segmentation.) Killick, R., Fearnhead, P. and Eckley, I. A. (2012). Optimal
 #' detection of changepoints with a linear computational cost. *Journal of the
 #' American Statistical Association*, 107(500), 1590--1598.
+#'
+#' Zhang, N. R. and Siegmund, D. O. (2007). A modified Bayes information
+#' criterion with applications to the analysis of comparative genomic
+#' hybridization data. *Biometrics*, 63(1), 22--32. (The motivation for
+#' strengthening the per-split penalty; the `"mbic"` value here is an
+#' empirically calibrated \eqn{3\log(n)}, not their functional.)
 #' @export
 #' @examples
 #' set.seed(1)
@@ -108,6 +120,8 @@ detect_changepoint <- function(x, penalty = "mbic", min_segment = 5L) {
     method = "binary-segmentation"
   )
 }
+
+# Segmentation internals ------------------------------------------------------
 
 #' Recursive binary segmentation of one interval
 #'
@@ -201,8 +215,9 @@ detect_changepoint <- function(x, penalty = "mbic", min_segment = 5L) {
 #' Resolve the change-point penalty argument to a number
 #'
 #' Maps the named penalties to their length-dependent values -- `"mbic"` to
-#' \eqn{2\log(n)} and `"sic"` to \eqn{\log(n)} -- and passes a numeric value
-#' through after checking it is a single non-negative finite number.
+#' \eqn{3\log(n)} and `"sic"` (alias `"bic"`) to \eqn{\log(n)} -- and passes a
+#' numeric value through after checking it is a single non-negative finite
+#' number.
 #'
 #' @param penalty The `penalty` argument to [detect_changepoint()].
 #' @param n Integer scalar — the series length.
@@ -216,13 +231,15 @@ detect_changepoint <- function(x, penalty = "mbic", min_segment = 5L) {
       mbic = 3 * log(n),
       sic = log(n),
       bic = log(n),
-      cli::cli_abort('`penalty` must be "mbic", "sic", or a number.')
+      cli::cli_abort('`penalty` must be "mbic", "sic", "bic", or a number.')
     )
     return(pen)
   }
   pen <- as.numeric(penalty)
   if (length(pen) != 1L || !is.finite(pen) || pen < 0) {
-    cli::cli_abort('`penalty` must be "mbic", "sic", or a non-negative number.')
+    cli::cli_abort(
+      '`penalty` must be "mbic", "sic", "bic", or a non-negative number.'
+    )
   }
   pen
 }

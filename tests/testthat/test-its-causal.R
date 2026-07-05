@@ -25,14 +25,69 @@ test_that("its_causal() reports a null effect honestly", {
 test_that("its_causal() interval coverage is near nominal under the null", {
   ## Repeated no-effect random walks: the 95% interval should straddle zero in
   ## roughly 95% of replicates. This is the calibration oracle for the verb --
-  ## the maximum-likelihood noise split is what makes it hold.
+  ## the maximum-likelihood noise split is what makes it hold. With 300
+  ## replicates the binomial standard error around 0.95 is about 0.013, so a
+  ## two-sided acceptance band of [0.92, 0.985] sits at roughly 2.5 standard
+  ## errors: an anticonservative interval drags the coverage below the floor,
+  ## an inflated one pushes it above the ceiling.
   withr::local_seed(5L)
-  covered <- vapply(seq_len(120L), function(i) {
+  covered <- vapply(seq_len(300L), function(i) {
     x <- cumsum(stats::rnorm(120, sd = 0.3))
     f <- its_causal(x, intervention = 61L)
     f@avg_effect_lower <= 0 && f@avg_effect_upper >= 0
   }, logical(1L))
-  expect_gt(mean(covered), 0.85)
+  expect_gte(mean(covered), 0.92)
+  expect_lte(mean(covered), 0.985)
+})
+
+test_that("its_causal() average-effect variance matches a simulation oracle", {
+  ## Independent Monte-Carlo oracle for the running-sum forecast variance. The
+  ## verb propagates an augmented state (x_t, c_t) whose process noise enters
+  ## both blocks as the same draw w_t, so the augmented noise covariance is
+  ## [[Q, Q], [Q, Q]] -- a zero off-diagonal block drops the state/running-sum
+  ## noise correlation and understates the interval. The oracle simulates the
+  ## post-period state paths directly from the fitted pre-period model (no
+  ## augmented recursion involved) and compares the variance of the summed
+  ## counterfactual with the value implied by the reported interval.
+  for (trend in c(FALSE, TRUE)) {
+    withr::local_seed(7L)
+    slope <- if (trend) 0.3 * seq_len(120L) else 0
+    x <- slope + cumsum(stats::rnorm(120, sd = 0.3))
+    fit <- its_causal(x, intervention = 81L, trend = trend)
+    n_post <- 40L
+    z <- stats::qnorm(0.975)
+    v_fit <- ((fit@avg_effect_upper - fit@avg_effect) / z * n_post)^2
+
+    ## Rebuild the fitted pre-period model and its final filtered covariance,
+    ## exactly as the verb seeds its forecast.
+    pre <- x[seq_len(80L)]
+    model <- kalmix:::.its_pre_model(pre, trend)
+    kf <- kalman_filter(model, pre)
+    p0 <- kf@filtered_cov[[nrow(kf@filtered_mean)]]
+    a <- model@transition[[1L]]
+    b <- model@observation[[1L]]
+    q <- model@state_cov[[1L]]
+    r <- as.numeric(model@obs_cov[[1L]])
+    m <- nrow(a)
+
+    ## Simulate the state deviation paths in bulk: one matrix multiply per
+    ## post-period step across all replicates.
+    n_sim <- 200000L
+    p_chol <- t(chol(p0 + diag(1e-12, m)))
+    q_chol <- t(chol(q + diag(1e-12, m)))
+    dev <- p_chol %*% matrix(stats::rnorm(m * n_sim), nrow = m)
+    dev_sum <- matrix(0, nrow = m, ncol = n_sim)
+    for (s in seq_len(n_post)) {
+      dev <- a %*% dev + q_chol %*% matrix(stats::rnorm(m * n_sim), nrow = m)
+      dev_sum <- dev_sum + dev
+    }
+    v_oracle <- stats::var(as.numeric(b %*% dev_sum)) + n_post * r
+
+    ## 200,000 replicates put the Monte-Carlo standard error near 0.3% of the
+    ## variance, so a 1% relative tolerance is wide against the noise yet
+    ## tight against the understatement a dropped noise block produces.
+    expect_equal(v_fit, v_oracle, tolerance = 0.01)
+  }
 })
 
 test_that("its_causal() pointwise and cumulative effects are consistent", {

@@ -1,6 +1,32 @@
 # kalmix (development version)
 
+## Breaking changes
+
+* **The optional `proxymix` engine is removed.** `mixture_filter()` and
+  `kalmix_filter()` no longer take an `engine` argument, and `proxymix` has
+  left `Suggests`. The delegated path assumed a regime-switching signature
+  that `proxymix::gmm_filter()` does not provide (it is a mixture-prior
+  Gaussian-sum filter), so requesting that engine could never run the
+  delegated call. The package's native Gaussian pseudo-Bayesian (GPB1)
+  recursion, always the default, is now the only engine. Callers who passed
+  `engine = "native"` can simply drop the argument; results are unchanged.
+
 ## New features
+
+* **Heavy-tailed (Student-t) observation model.** `ssm()` gains an
+  `obs_family` argument (`"gaussian"`, the default, or `"student_t"`) and an
+  `obs_df` degrees-of-freedom argument. A Student-t family runs a deterministic
+  outlier-robust Kalman filter (the variational fixed point of Agamennoni et
+  al. 2012 over the Gaussian scale-mixture representation of the t), so an
+  outlier is down-weighted rather than allowed to distort the state. The new
+  `estimate_obs_df()` selects the degrees of freedom by profile likelihood --
+  the grid includes `Inf`, and a likelihood-ratio parsimony margin keeps
+  light-tailed data Gaussian. `innovation_diagnostics()` is now family-aware:
+  under a Student-t model the scale and family-fit tests read off the t
+  probability-integral transform, so the adequacy guard can *certify* a causal
+  read-out on a genuinely heavy-tailed series (climate extremes, financial
+  returns) where the Gaussian model can only abstain. The Gaussian path is
+  unchanged, and the t model collapses to it as the degrees of freedom grow.
 
 * **Model-adequacy grounding for assimilative causal inference.**
   `innovation_diagnostics()` runs the standard state-space residual battery --
@@ -11,9 +37,8 @@
   token (`grounding`, `grounding_reason` and `adequacy` are new `aci_fit`
   fields), and a verdict is labelled `"grounded"` only when an adequate model
   carries declared, dated mechanism provenance through the new `mechanism`
-  argument. The grounding tokens follow the orchestra's provenance vocabulary,
-  so passing the diagnostics establishes self-consistency without, on its own,
-  claiming external verification.
+  argument. Passing the diagnostics establishes self-consistency without, on
+  its own, claiming external verification.
 
 * **Adaptive online smoother for the causal information rate.**
   `causal_information_rate()` gains an `engine` argument. The default
@@ -25,7 +50,48 @@
   `engine = "expanding"` and cross-checks the online engine to numerical
   precision.
 
+## Package infrastructure
+
+* A README entry surface, a three-OS by three-R
+  continuous-integration check matrix, an explicit pre-1.0 API-stability
+  policy (`API_STABILITY.md` in the repository), and a `CITATION` that reads
+  the version from the package metadata instead of pinning it by hand.
+
 ## Bug fixes
+
+* **The causal-influence-range profile now matches its published
+  definition.** The expanding-window divergence behind
+  `causal_information_rate()` and the `aci()` lead-time measured the lagged
+  estimate from the complete smoother; the published definition integrates
+  over the complete smoother (the reverse relative-entropy direction), and
+  its normaliser is then exactly the per-step causal information at the
+  anchor. Both engines were corrected together, so lead-times shift slightly
+  in general; the two engines still agree to numerical tolerance and the
+  recorded ENSO sanity bounds are unchanged. A dated equation-grounding
+  record now accompanies the package sources.
+
+* **`kalmix_filter()` now tracks a spread with a non-zero long-run mean.** The
+  per-regime state-space models carried no intercept term, so the filtered
+  state was contracted toward zero rather than toward the fitted long-run
+  mean: on a spread centred at 5 the filtered mean sat roughly 6 per cent low.
+  The regime models are now the Ornstein-Uhlenbeck deviation form -- the
+  filter runs on `y - theta` and the returned state estimates are shifted
+  back to the observed scale, for both the mixture path and the
+  single-regime Kalman path. Regime probabilities, innovations and the
+  log-likelihood are unaffected by the reformulation, and for a spread whose
+  fitted long-run mean is near zero the change is negligible.
+
+* **`its_causal()` average-effect intervals were understated.** The augmented
+  running-sum covariance recursion dropped the off-diagonal block of its
+  process-noise covariance, losing the correlation between the state noise and
+  the running sum it also drives. Average-effect intervals now widen slightly
+  (the local-level null case understated the summed-counterfactual variance by
+  about 4 per cent), so a borderline effect near an interval endpoint can
+  change verdict. Point estimates, pointwise counterfactual intervals and the
+  cumulative-effect path are unchanged. The recursion is now pinned to a
+  direct Monte-Carlo simulation oracle in the test suite, and the null
+  coverage test tightened from a one-sided floor to a two-sided band around
+  the nominal 95 per cent.
 
 * The NOAA Oceanic Nino Index external-oracle test now skips cleanly when the
   `curl` package is absent, so `R CMD check` is clean on hosts without it
@@ -52,8 +118,8 @@ This development cycle adds the time-resolved assimilative-causal-inference
   divergence profile, returning a decision lead-time in the time units of the
   series.
 * **Native Gaussian relative entropy.** The smoother-vs-filter divergence is
-  computed natively in closed form, so the ACI path is self-contained. When the
-  orchestra's `kernR` package is installed its `relative_entropy()` is used as
+  computed natively in closed form, so the ACI path is self-contained. When
+  the `kernR` package is installed its `relative_entropy()` is used as
   an independent oracle in the test suite; the comparison skips when `kernR` is
   absent, so the package builds and checks cleanly either way (`kernR` is
   `Suggests`-only).

@@ -7,7 +7,7 @@
 # series would have followed, and the observed post-intervention path is
 # contrasted with that counterfactual. The pointwise and cumulative effects
 # carry predictive intervals from the forecast covariance, so a null effect is
-# reported honestly rather than asserted. This is the single-case
+# reported as a null rather than asserted away. This is the single-case
 # interrupted-time-series design done on the Kalman forecast.
 
 #' A single-case interrupted-time-series causal contrast
@@ -61,8 +61,8 @@ its_fit <- S7::new_class(
 #' state is projected forward across the post-intervention window, and the
 #' observed values are differenced against that forecast. The forecast
 #' covariance gives a predictive interval, so the pointwise, cumulative and
-#' average effects each carry an honest uncertainty band -- a genuinely null
-#' effect shows an interval that straddles zero.
+#' average effects each carry a calibrated uncertainty band, and a genuinely
+#' null effect shows an interval that straddles zero.
 #'
 #' The design is the single-case (N-of-1) interrupted time series; it is causal
 #' only under the maintained assumption that, absent the intervention, the
@@ -123,7 +123,10 @@ its_causal <- function(x, intervention, trend = FALSE, level = 0.95) {
 
   # The augmented state (x_t, c_t) stacks the latent state with its running sum
   # c_t = c_{t-1} + x_t; its covariance recursion gives var(sum_t B x_t) in the
-  # lower-right block, capturing the across-time error correlation exactly.
+  # lower-right block, capturing the across-time error correlation exactly. The
+  # same process-noise draw w_t enters both blocks, so all four blocks of the
+  # augmented noise covariance equal Q -- a zero off-diagonal block would drop
+  # the state/running-sum noise correlation and understate the interval.
   m <- model@state_dim
   cf <- numeric(n_post)
   cf_var <- numeric(n_post)
@@ -133,7 +136,7 @@ its_causal <- function(x, intervention, trend = FALSE, level = 0.95) {
   joint_cov[seq_len(m), seq_len(m)] <- p_state
   obs_var_sum <- 0
   big_a <- rbind(cbind(a, matrix(0, m, m)), cbind(a, diag(m)))
-  big_q <- rbind(cbind(q, matrix(0, m, m)), cbind(q, q))
+  big_q <- rbind(cbind(q, q), cbind(q, q))
 
   for (t in seq_len(n_post)) {
     x_state <- as.numeric(a %*% x_state)

@@ -64,10 +64,17 @@ causal information.
 \details{
 By default the objective causal information rate and the decision lead-time
 are also computed (\code{lead_time = TRUE}), through \code{\link[=causal_information_rate]{causal_information_rate()}}:
-the divergence between an expanding-future-window smoother and the complete
+the divergence of the complete smoother from an expanding-future-window
 smoother is integrated into a single threshold-free lead-time in the time
 units of the series (their eqs. 8--9). Set \code{lead_time = FALSE} to return the
 causal information series alone, which is cheaper for long series.
+
+Under a Student-t observation family (\code{obs_family = "student_t"}) the
+filter pass is the outlier-robust variational update, whose per-step
+posteriors are Gaussian approximations. The relative-entropy chain treats
+those approximations as exact Gaussians, so the causal information and
+lead-time inherit the variational approximation; the Gaussian family
+involves no approximation.
 
 The recovered state is interpretable as a cause of the observed series only
 under the maintained assumption that the \link{ssm} is the data-generating
@@ -77,8 +84,7 @@ innovations are not white, not correctly scaled, or not Gaussian is declared
 inadequate, so the verdict abstains with a \verb{[unverified]} grounding token.
 Passing the diagnostics establishes self-consistency only; the verdict is
 labelled \code{"grounded"} solely when an adequate model is accompanied by
-declared, dated \code{mechanism} provenance, and is the honest \code{"[unverified]"}
-otherwise.
+declared, dated \code{mechanism} provenance, and is \code{"[unverified]"} otherwise.
 }
 \examples{
 ## A latent oscillation seen through a slow, noisy observation channel: the
@@ -119,6 +125,7 @@ estimates of linear dynamic systems. \emph{AIAA Journal}, 3(8), 1445--1450.
 Other causal: 
 \code{\link{aci_fit}()},
 \code{\link{causal_information_rate}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innov_diag}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},

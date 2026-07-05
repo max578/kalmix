@@ -4,13 +4,7 @@
 \alias{kalmix_filter}
 \title{Filter a regime-switching spread state (mixture Kalman)}
 \usage{
-kalmix_filter(
-  model,
-  y,
-  n_regimes = 2L,
-  vol_multipliers = NULL,
-  engine = c("native", "proxymix")
-)
+kalmix_filter(model, y, n_regimes = 2L, vol_multipliers = NULL)
 }
 \arguments{
 \item{model}{A \link{spread_model} giving the mean-reversion dynamics of the
@@ -24,11 +18,11 @@ Defaults to \code{2}.}
 \item{vol_multipliers}{A numeric vector of length \code{n_regimes} giving each
 regime's observation-noise multiple of the fitted spread variance, or
 \code{NULL} for a geometric spread from calm to turbulent. Defaults to \code{NULL}.}
-
-\item{engine}{Character scalar — \code{"native"} (default) or \code{"proxymix"}.}
 }
 \value{
-A \link{regime_fit} over the spread's volatility regimes.
+A \link{regime_fit} over the spread's volatility regimes. When
+\code{n_regimes = 1} the regime machinery is skipped and the \link{kalman_fit} of a
+plain Kalman pass is returned instead.
 }
 \description{
 Filters the latent mean-reverting state of a spread through a finite
@@ -43,9 +37,14 @@ regime at every step.
 }
 \details{
 The recursion runs on the package's native engine and needs no sibling
-package. If \code{proxymix} and its mixture-Kalman primitive are installed and
-\code{engine = "proxymix"} is requested, that engine is used instead; otherwise
-the native filter is used and remains the default.
+package.
+
+The regime models operate on deviations from the fitted long-run mean: the
+discrete-time Ornstein-Uhlenbeck dynamics are the plain autoregressive
+contraction of \eqn{x_t - \theta}, so the observed spread is de-meaned by
+\code{model@theta} before filtering and the returned state estimates are
+reported back on the observed scale. A spread whose long-run mean is far
+from zero is therefore tracked around \eqn{\theta}, not pulled toward zero.
 }
 \examples{
 x <- as.numeric(stats::arima.sim(list(ar = 0.85), n = 400))

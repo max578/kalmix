@@ -41,7 +41,8 @@ in. Defaults to \code{1}, so the lead-time is in steps.}
 \item{smoother}{The \link{rts_fit} the read-out was computed from.}
 
 \item{grounding}{Character scalar -- the grounding token of the causal
-verdict, \code{"grounded"} or \code{"[unverified]"} (provenance_vocabulary.md §1).}
+verdict, \code{"grounded"} or \code{"[unverified]"}; see the token definitions in
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}}.}
 
 \item{grounding_reason}{Character scalar -- a short label for why the verdict
 carries that token (\code{"grounded"}, \code{"mechanism_unverified"},
@@ -72,6 +73,7 @@ about the state at \code{t}.
 Other causal: 
 \code{\link{aci}()},
 \code{\link{causal_information_rate}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innov_diag}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},

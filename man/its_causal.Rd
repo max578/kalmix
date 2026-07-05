@@ -30,8 +30,8 @@ or local-linear-trend \link{ssm} is fitted to \code{x[1:(intervention - 1)]}, it
 state is projected forward across the post-intervention window, and the
 observed values are differenced against that forecast. The forecast
 covariance gives a predictive interval, so the pointwise, cumulative and
-average effects each carry an honest uncertainty band -- a genuinely null
-effect shows an interval that straddles zero.
+average effects each carry a calibrated uncertainty band, and a genuinely
+null effect shows an interval that straddles zero.
 }
 \details{
 The design is the single-case (N-of-1) interrupted time series; it is causal
@@ -60,6 +60,7 @@ Other causal:
 \code{\link{aci}()},
 \code{\link{aci_fit}()},
 \code{\link{causal_information_rate}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innov_diag}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_fit}()}

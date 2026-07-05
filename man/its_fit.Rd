@@ -55,6 +55,7 @@ Other causal:
 \code{\link{aci}()},
 \code{\link{aci_fit}()},
 \code{\link{causal_information_rate}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innov_diag}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()}

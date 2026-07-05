@@ -8,6 +8,8 @@
 # The general state-space machinery itself lives in ssm-class.R, kalman.R,
 # mixture.R, hmm.R, changepoint.R and its-causal.R.
 
+# The spread_model class ------------------------------------------------------
+
 #' A fitted mean-reverting spread model
 #'
 #' An S7 object holding the Ornstein-Uhlenbeck (OU) parameters of a
@@ -67,6 +69,8 @@ spread_model <- S7::new_class(
     NULL
   }
 )
+
+# Spread-model summaries ------------------------------------------------------
 
 #' Mean-reversion half-life of a spread model
 #'

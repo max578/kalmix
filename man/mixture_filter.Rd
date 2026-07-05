@@ -4,13 +4,7 @@
 \alias{mixture_filter}
 \title{Regime-switching Gaussian-mixture filter}
 \usage{
-mixture_filter(
-  models,
-  y,
-  transition = NULL,
-  init_prob = NULL,
-  engine = c("native", "proxymix")
-)
+mixture_filter(models, y, transition = NULL, init_prob = NULL)
 }
 \arguments{
 \item{models}{A list of two or more \link{ssm} objects, one per regime, sharing a
@@ -24,10 +18,6 @@ high probability. Defaults to \code{NULL}.}
 
 \item{init_prob}{A length-\code{k} vector of initial regime probabilities, or
 \code{NULL} for a uniform prior. Defaults to \code{NULL}.}
-
-\item{engine}{Character scalar — \code{"native"} (the default, self-contained) or
-\code{"proxymix"} (used only if \code{proxymix} and its mixture-Kalman primitive are
-available, otherwise it falls back to native with a message).}
 }
 \value{
 A \link{regime_fit}.
@@ -42,12 +32,6 @@ and the regime-transition prior, and collapses the per-regime posteriors back
 to a single Gaussian (a Gaussian pseudo-Bayesian order-one recursion). The
 returned regime probabilities are the filtered posterior over the active
 regime.
-}
-\details{
-This is the package's native regime engine and runs standalone. An optional
-\code{proxymix} path can be requested with \code{engine = "proxymix"}; it is used only
-when that package and its mixture-Kalman primitive are installed, and the
-native engine is the default and the fallback.
 }
 \examples{
 ## Two volatility regimes for a local-level series.

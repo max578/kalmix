@@ -15,6 +15,7 @@ innov_diag(
   lags = NA_integer_,
   n_obs = NA_integer_,
   obs_dim = NA_integer_,
+  obs_family = "gaussian",
   reason = NA_character_
 )
 }
@@ -45,6 +46,10 @@ judge.}
 
 \item{obs_dim}{Integer scalar -- the observation dimension.}
 
+\item{obs_family}{Character scalar -- the observation-noise family the
+diagnostics were taken under (\code{"gaussian"} or \code{"student_t"}), which selects
+the reference distribution of the scale and family-fit tests.}
+
 \item{reason}{Character scalar -- a short label for the verdict
 (\code{"adequate"}, \code{"model_inadequate"} or \code{"insufficient_data"}).}
 }
@@ -62,6 +67,7 @@ Other causal:
 \code{\link{aci}()},
 \code{\link{aci_fit}()},
 \code{\link{causal_information_rate}()},
+\code{\link{estimate_obs_df}()},
 \code{\link{innovation_diagnostics}()},
 \code{\link{its_causal}()},
 \code{\link{its_fit}()}

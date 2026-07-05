@@ -84,6 +84,38 @@ test_that("rts_smoother() is no worse than the filter and accepts both inputs", 
   expect_equal(sm@smoothed_mean, sm2@smoothed_mean)
 })
 
+test_that("rts_smoother() covariances never exceed the filter's (trace-wise)", {
+  ## Conditioning on the whole series cannot add uncertainty: at every step
+  ## the smoothed covariance is dominated by the filtered covariance, so its
+  ## trace must be no larger. Checked as a property over random stable one-
+  ## and two-dimensional models rather than a single fixture (the covariance
+  ## recursions do not depend on the observed values, only on the model).
+  for (seed in 1:5) {
+    withr::local_seed(seed)
+    m_dim <- 1L + seed %% 2L
+    a <- matrix(stats::rnorm(m_dim^2), m_dim)
+    a <- a / (max(Mod(eigen(a, only.values = TRUE)$values)) + 0.1)
+    q_root <- matrix(stats::rnorm(m_dim^2, sd = 0.5), m_dim)
+    model <- ssm(
+      transition = a,
+      observation = matrix(stats::rnorm(m_dim), nrow = 1L),
+      state_cov = crossprod(q_root) + diag(0.05, m_dim),
+      obs_cov = 0.5 + stats::runif(1),
+      init_state = numeric(m_dim),
+      init_cov = diag(1, m_dim)
+    )
+    fit <- kalman_filter(model, stats::rnorm(60))
+    sm <- rts_smoother(fit)
+    trace_filter <- vapply(
+      fit@filtered_cov, function(p) sum(diag(p)), numeric(1L)
+    )
+    trace_smooth <- vapply(
+      sm@smoothed_cov, function(p) sum(diag(p)), numeric(1L)
+    )
+    expect_true(all(trace_smooth <= trace_filter + 1e-10))
+  }
+})
+
 test_that("kalman_filter() and rts_smoother() validate their inputs", {
   m <- ssm(
     transition = 1, observation = 1, state_cov = 0.1, obs_cov = 1,

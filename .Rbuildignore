@@ -8,3 +8,5 @@
 ^\.cursor$
 ^LICENSE\.md$
 ^\.github$
+^de_vibe_.*\.md$
+^API_STABILITY\.md$
