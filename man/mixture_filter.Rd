@@ -10,7 +10,11 @@ mixture_filter(models, y, transition = NULL, init_prob = NULL)
 \item{models}{A list of two or more \link{ssm} objects, one per regime, sharing a
 common state and observation dimension.}
 
-\item{y}{A numeric vector or \code{n} by \code{d} matrix of observations.}
+\item{y}{A numeric vector or \code{n} by \code{d} matrix of observations. A fully
+\code{NA} entry (row) is a missing observation: every regime runs a
+prediction-only step, the regime weights carry the chain prior forward
+unchanged and the step adds nothing to the log-likelihood. Partially
+missing multivariate rows are refused.}
 
 \item{transition}{A \code{k} by \code{k} regime-transition probability matrix (rows
 sum to one), or \code{NULL} for a default that stays in the current regime with
@@ -62,6 +66,8 @@ Other state-space:
 \code{\link{regime_fit}()},
 \code{\link{rts_fit}()},
 \code{\link{rts_smoother}()},
-\code{\link{ssm}()}
+\code{\link{ssm}()},
+\code{\link{ssm_fit}()},
+\code{\link{ssm_mle}()}
 }
 \concept{state-space}

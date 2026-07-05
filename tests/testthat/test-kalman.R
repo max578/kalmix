@@ -123,7 +123,8 @@ test_that("kalman_filter() and rts_smoother() validate their inputs", {
   )
   expect_error(kalman_filter("not a model", 1:10), "ssm")
   expect_error(kalman_filter(m, matrix(1, 5, 2)), "column")
-  expect_error(kalman_filter(m, c(1, NA, 3)), "missing")
+  ## A univariate NA is a missing observation, not an input error.
+  expect_no_error(kalman_filter(m, c(1, NA, 3)))
   expect_error(rts_smoother(m), "required")
   expect_error(rts_smoother("nope"), "kalman_fit")
 })

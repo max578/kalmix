@@ -62,6 +62,7 @@ Collate:
     'ssm-class.R'
     'student-t-internal.R'
     'kalman.R'
+    'ssm-fit.R'
     'mixture-internal.R'
     'mixture.R'
     'hmm-internal.R'

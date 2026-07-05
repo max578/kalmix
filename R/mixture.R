@@ -26,6 +26,16 @@
 #' @param state_mean An `n` by `m` matrix of collapsed (mixture-marginalised)
 #'   state means.
 #' @param state_cov A list of `n` collapsed state covariances.
+#' @param innovation An `n` by `d` matrix of collapsed one-step innovations:
+#'   the observation minus the mixture predictive mean under the chain-prior
+#'   regime weights (`NA` at a missing observation).
+#' @param innovation_cov A list of `n` collapsed one-step predictive
+#'   covariances matching `innovation`.
+#' @param innovation_pit For a univariate series, the length-`n`
+#'   probability-integral transform of each observation under its one-step
+#'   mixture predictive (`NA` at a missing observation; empty for `d > 1`).
+#'   This is the exact reference for the adequacy diagnostics, where the
+#'   collapsed Gaussian would wrongly fail a well-specified mixture.
 #' @param log_lik Numeric scalar — the mixture model log-likelihood.
 #' @param n_regimes Integer scalar — the number of regimes `k`.
 #'
@@ -39,6 +49,9 @@ regime_fit <- S7::new_class(
     regime_prob = S7::class_double,
     state_mean = S7::class_double,
     state_cov = S7::class_list,
+    innovation = S7::class_double,
+    innovation_cov = S7::class_list,
+    innovation_pit = S7::new_property(S7::class_double, default = numeric(0L)),
     log_lik = S7::class_double,
     n_regimes = S7::class_integer
   ),
@@ -64,7 +77,11 @@ regime_fit <- S7::new_class(
 #'
 #' @param models A list of two or more [ssm] objects, one per regime, sharing a
 #'   common state and observation dimension.
-#' @param y A numeric vector or `n` by `d` matrix of observations.
+#' @param y A numeric vector or `n` by `d` matrix of observations. A fully
+#'   `NA` entry (row) is a missing observation: every regime runs a
+#'   prediction-only step, the regime weights carry the chain prior forward
+#'   unchanged and the step adds nothing to the log-likelihood. Partially
+#'   missing multivariate rows are refused.
 #' @param transition A `k` by `k` regime-transition probability matrix (rows
 #'   sum to one), or `NULL` for a default that stays in the current regime with
 #'   high probability. Defaults to `NULL`.
@@ -126,10 +143,14 @@ mixture_filter <- function(models,
   k <- length(models)
   n <- nrow(y)
   m <- models[[1L]]@state_dim
+  d <- models[[1L]]@obs_dim
 
   regime_prob <- matrix(0, nrow = n, ncol = k)
   state_mean <- matrix(0, nrow = n, ncol = m)
   state_cov <- vector("list", n)
+  innovation <- matrix(0, nrow = n, ncol = d)
+  innovation_cov <- vector("list", n)
+  innovation_pit <- if (d == 1L) rep(NA_real_, n) else numeric(0L)
   log_lik <- 0
 
   # Shared mixed prior, common to all regimes at entry to each step ----------
@@ -145,7 +166,10 @@ mixture_filter <- function(models,
     prior <- as.numeric(prob %*% transition)
     means <- vector("list", k)
     covs <- vector("list", k)
+    yhats <- vector("list", k)
+    preds <- vector("list", k)
     log_w <- numeric(k)
+    missing_t <- anyNA(y[t, ])
 
     for (j in seq_len(k)) {
       a <- .at_step(models[[j]]@transition, t)
@@ -155,24 +179,37 @@ mixture_filter <- function(models,
 
       x_pred <- as.numeric(a %*% x_mix)
       p_pred <- a %*% p_mix %*% t(a) + q
+      yhats[[j]] <- as.numeric(b %*% x_pred)
+      preds[[j]] <- b %*% p_pred %*% t(b) + r
 
-      e <- y[t, ] - as.numeric(b %*% x_pred)
-      s <- b %*% p_pred %*% t(b) + r
-      s_chol <- .safe_chol(s, "innovation covariance")
-      s_inv <- chol2inv(s_chol)
-      gain <- p_pred %*% t(b) %*% s_inv
+      if (missing_t) {
+        # Missing observation: prediction-only step in every regime; the data
+        # carry no evidence, so the regime weights stay at the chain prior.
+        means[[j]] <- x_pred
+        covs[[j]] <- .symmetrise(p_pred)
+      } else {
+        e <- y[t, ] - yhats[[j]]
+        s <- preds[[j]]
+        s_chol <- .safe_chol(s, "innovation covariance")
+        s_inv <- chol2inv(s_chol)
+        gain <- p_pred %*% t(b) %*% s_inv
 
-      means[[j]] <- x_pred + as.numeric(gain %*% e)
-      covs[[j]] <- .symmetrise(p_pred - gain %*% b %*% p_pred)
-      log_w[j] <- log(prior[j] + .Machine$double.xmin) +
-        .dmvnorm_log(y[t, ], as.numeric(b %*% x_pred), s)
+        means[[j]] <- x_pred + as.numeric(gain %*% e)
+        covs[[j]] <- .symmetrise(p_pred - gain %*% b %*% p_pred)
+        log_w[j] <- log(prior[j] + .Machine$double.xmin) +
+          .dmvnorm_log(y[t, ], yhats[[j]], s)
+      }
     }
 
     # Reweight and collapse to one Gaussian ----------------------------------
 
-    norm <- .softmax_with_norm(log_w)
-    prob <- norm$prob
-    log_lik <- log_lik + norm$log_norm
+    if (missing_t) {
+      prob <- prior
+    } else {
+      norm <- .softmax_with_norm(log_w)
+      prob <- norm$prob
+      log_lik <- log_lik + norm$log_norm
+    }
 
     x_mix <- Reduce(`+`, Map(function(p, mu) p * mu, prob, means))
     p_mix <- Reduce(`+`, Map(function(p, mu, sig) {
@@ -180,6 +217,27 @@ mixture_filter <- function(models,
       p * (sig + outer(gap, gap))
     }, prob, means, covs))
     p_mix <- .symmetrise(p_mix)
+
+    # Collapsed one-step innovation: the observation against the mixture
+    # predictive under the chain-prior weights, so the moments condition on
+    # y_{1:t-1} only (the quantity the adequacy diagnostics whiten).
+    y_mix <- Reduce(`+`, Map(function(p, mu) p * mu, prior, yhats))
+    s_mix <- Reduce(`+`, Map(function(p, mu, sig) {
+      gap <- mu - y_mix
+      p * (sig + outer(gap, gap))
+    }, prior, yhats, preds))
+    innovation[t, ] <- if (missing_t) rep(NA_real_, d) else y[t, ] - y_mix
+    innovation_cov[[t]] <- .symmetrise(s_mix)
+    if (d == 1L && !missing_t) {
+      # Exact one-step probability integral transform under the mixture
+      # predictive: uniform when the regime model is correctly specified,
+      # the reference the adequacy diagnostics test against.
+      innovation_pit[t] <- sum(vapply(seq_len(k), function(j) {
+        prior[j] * stats::pnorm(
+          y[t, 1L], mean = yhats[[j]][1L], sd = sqrt(preds[[j]][1L, 1L])
+        )
+      }, numeric(1L)))
+    }
 
     regime_prob[t, ] <- prob
     state_mean[t, ] <- x_mix
@@ -190,6 +248,9 @@ mixture_filter <- function(models,
     regime_prob = regime_prob,
     state_mean = state_mean,
     state_cov = state_cov,
+    innovation = innovation,
+    innovation_cov = innovation_cov,
+    innovation_pit = innovation_pit,
     log_lik = log_lik,
     n_regimes = as.integer(k)
   )

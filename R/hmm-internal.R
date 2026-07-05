@@ -40,7 +40,7 @@
 #' @keywords internal
 .hmm_log_emission <- function(model, y) {
   k <- model@n_states
-  vapply(seq_len(k), function(j) {
+  log_emit <- vapply(seq_len(k), function(j) {
     stats::dnorm(
       y,
       mean = model@emission_mean[j],
@@ -48,6 +48,11 @@
       log = TRUE
     )
   }, numeric(length(y)))
+  # A missing observation carries no evidence about the state: a flat (zero
+  # log-density) emission row lets the chain prior propagate unchanged, and
+  # the constant cancels in every normalisation.
+  log_emit[is.na(y), ] <- 0
+  log_emit
 }
 
 # Validation helpers ----------------------------------------------------------
@@ -92,8 +97,9 @@
 
 #' Validate an observation vector for the HMM verbs
 #'
-#' Checks that the observations form a finite numeric vector of at least two
-#' points. The HMM verbs are univariate in this release.
+#' Checks that the observations form a numeric vector of at least two points,
+#' of which at least one is observed. The HMM verbs are univariate in this
+#' release; an `NA` marks a missing observation, handled by a flat emission.
 #'
 #' @param y The `y` argument to [hmm_filter()] or [hmm_viterbi()].
 #'
@@ -107,8 +113,8 @@
   if (length(y) < 2L) {
     cli::cli_abort("`y` must have at least two observations.")
   }
-  if (anyNA(y)) {
-    cli::cli_abort("`y` must not contain missing values.")
+  if (all(is.na(y))) {
+    cli::cli_abort("`y` must contain at least one observed value.")
   }
   as.numeric(y)
 }

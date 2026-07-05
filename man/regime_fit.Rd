@@ -8,6 +8,9 @@ regime_fit(
   regime_prob = numeric(0),
   state_mean = numeric(0),
   state_cov = list(),
+  innovation = numeric(0),
+  innovation_cov = list(),
+  innovation_pit = numeric(0),
   log_lik = numeric(0),
   n_regimes = integer(0)
 )
@@ -20,6 +23,19 @@ row \code{t} summing to one over the \code{k} regimes.}
 state means.}
 
 \item{state_cov}{A list of \code{n} collapsed state covariances.}
+
+\item{innovation}{An \code{n} by \code{d} matrix of collapsed one-step innovations:
+the observation minus the mixture predictive mean under the chain-prior
+regime weights (\code{NA} at a missing observation).}
+
+\item{innovation_cov}{A list of \code{n} collapsed one-step predictive
+covariances matching \code{innovation}.}
+
+\item{innovation_pit}{For a univariate series, the length-\code{n}
+probability-integral transform of each observation under its one-step
+mixture predictive (\code{NA} at a missing observation; empty for \code{d > 1}).
+This is the exact reference for the adequacy diagnostics, where the
+collapsed Gaussian would wrongly fail a well-specified mixture.}
 
 \item{log_lik}{Numeric scalar — the mixture model log-likelihood.}
 
@@ -41,6 +57,8 @@ Other state-space:
 \code{\link{mixture_filter}()},
 \code{\link{rts_fit}()},
 \code{\link{rts_smoother}()},
-\code{\link{ssm}()}
+\code{\link{ssm}()},
+\code{\link{ssm_fit}()},
+\code{\link{ssm_mle}()}
 }
 \concept{state-space}

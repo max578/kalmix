@@ -76,6 +76,12 @@ those approximations as exact Gaussians, so the causal information and
 lead-time inherit the variational approximation; the Gaussian family
 involves no approximation.
 
+A regime-switching fit is not accepted here: the read-out needs a smoother
+pass, and a regime (GPB1) smoother is not yet implemented. A regime model
+can still be \emph{certified} directly by passing its \link{regime_fit} to
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}}, which tests the collapsed one-step
+innovations.
+
 The recovered state is interpretable as a cause of the observed series only
 under the maintained assumption that the \link{ssm} is the data-generating
 mechanism. That assumption is not taken on trust: the read-out is grounded

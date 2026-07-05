@@ -108,7 +108,10 @@ rts_fit <- S7::new_class(
 #'
 #' @param model An [ssm].
 #' @param y A numeric vector (univariate) or `n` by `d` matrix (multivariate)
-#'   of observations.
+#'   of observations. A fully `NA` entry (row) marks a missing observation:
+#'   the filter runs a prediction-only step there, records an `NA` innovation
+#'   and adds nothing to the log-likelihood. Partially missing multivariate
+#'   rows are refused.
 #'
 #' @returns A [kalman_fit].
 #' @family state-space
@@ -171,15 +174,24 @@ kalman_filter <- function(model, y) {
 
     # Update -----------------------------------------------------------------
 
-    e <- y[t, ] - as.numeric(b %*% x_pred)
-
-    if (is_t) {
+    if (anyNA(y[t, ])) {
+      # Missing observation: a prediction-only step. The filtered moments are
+      # the predicted moments, the innovation is undefined (recorded NA, with
+      # the predictive covariance kept for scale) and the step contributes
+      # nothing to the likelihood.
+      x <- x_pred
+      p <- p_pred
+      e <- rep(NA_real_, d)
+      s <- b %*% p_pred %*% t(b) + r
+    } else if (is_t) {
+      e <- y[t, ] - as.numeric(b %*% x_pred)
       upd <- .kalman_update_t(x_pred, p_pred, b, r, e, nu)
       x <- upd$x
       p <- upd$p
       s <- upd$s
       log_lik <- log_lik + upd$loglik
     } else {
+      e <- y[t, ] - as.numeric(b %*% x_pred)
       s <- b %*% p_pred %*% t(b) + r
       s_chol <- .safe_chol(s, "innovation covariance")
       s_inv <- chol2inv(s_chol)
