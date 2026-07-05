@@ -1,7 +1,7 @@
 test_that("kalmix_filter() has a stable signature", {
   expect_setequal(
     names(formals(kalmix_filter)),
-    c("model", "y", "n_regimes", "vol_multipliers", "engine")
+    c("model", "y", "n_regimes", "vol_multipliers")
   )
 })
 
@@ -77,10 +77,15 @@ test_that("kalmix_filter() validates its arguments", {
   )
 })
 
-test_that("the proxymix mixture-Kalman primitive is not relied upon", {
-  ## kalmix is standalone-functional: the native filter is the default, so the
-  ## absent proxymix primitive must never block a filter call.
-  expect_false(kalmix:::.proxymix_has_filter())
+test_that("the regime filter is fully standalone", {
+  ## The mixture-Kalman sibling commission is closed: the native GPB1 filter
+  ## is canonical and no code path may reference a sibling engine. Guard the
+  ## three surfaces the adapter used to occupy so it cannot quietly return.
+  expect_false("engine" %in% names(formals(kalmix_filter)))
+  expect_false("engine" %in% names(formals(mixture_filter)))
+  suggests <- utils::packageDescription("kalmix")$Suggests
+  expect_false(grepl("proxymix", if (is.null(suggests)) "" else suggests,
+                     fixed = TRUE))
   model <- ou_fit(.sim_ou(n = 200, seed = 5L))
   expect_no_error(kalmix_filter(model, .sim_ou(n = 200, seed = 5L)))
 })

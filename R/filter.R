@@ -10,8 +10,7 @@
 # turbulent state -- the regime read-out a mean-reversion trade conditions on.
 #
 # The engine is the package's own native filter and never requires a sibling
-# package. An optional proxymix path is honoured if that package and its
-# mixture-Kalman primitive are installed, but it is never on the critical path.
+# package.
 
 #' Filter a regime-switching spread state (mixture Kalman)
 #'
@@ -26,9 +25,7 @@
 #' regime at every step.
 #'
 #' The recursion runs on the package's native engine and needs no sibling
-#' package. If `proxymix` and its mixture-Kalman primitive are installed and
-#' `engine = "proxymix"` is requested, that engine is used instead; otherwise
-#' the native filter is used and remains the default.
+#' package.
 #'
 #' The regime models operate on deviations from the fitted long-run mean: the
 #' discrete-time Ornstein-Uhlenbeck dynamics are the plain autoregressive
@@ -45,7 +42,6 @@
 #' @param vol_multipliers A numeric vector of length `n_regimes` giving each
 #'   regime's observation-noise multiple of the fitted spread variance, or
 #'   `NULL` for a geometric spread from calm to turbulent. Defaults to `NULL`.
-#' @param engine Character scalar — `"native"` (default) or `"proxymix"`.
 #'
 #' @returns A [regime_fit] over the spread's volatility regimes. When
 #'   `n_regimes = 1` the regime machinery is skipped and the [kalman_fit] of a
@@ -64,9 +60,7 @@
 kalmix_filter <- function(model,
                           y,
                           n_regimes = 2L,
-                          vol_multipliers = NULL,
-                          engine = c("native", "proxymix")) {
-  engine <- match.arg(engine)
+                          vol_multipliers = NULL) {
   if (!S7::S7_inherits(model, spread_model)) {
     cli::cli_abort("`model` must be a {.cls spread_model}.")
   }
@@ -92,7 +86,7 @@ kalmix_filter <- function(model,
     fit@predicted_mean <- fit@predicted_mean + model@theta
     return(fit)
   }
-  fit <- mixture_filter(models, y_dev, engine = engine)
+  fit <- mixture_filter(models, y_dev)
   fit@state_mean <- fit@state_mean + model@theta
   fit
 }
@@ -159,14 +153,4 @@ kalmix_filter <- function(model,
       init_cov = model@sigma^2 / (2 * model@kappa)
     )
   })
-}
-
-#' Whether the proxymix mixture-Kalman primitive is available
-#'
-#' @returns Logical scalar.
-#' @noRd
-#' @keywords internal
-.proxymix_has_filter <- function() {
-  requireNamespace("proxymix", quietly = TRUE) &&
-    exists("gmm_filter", envir = asNamespace("proxymix"))
 }

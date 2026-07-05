@@ -46,7 +46,6 @@ Imports:
     stats,
     cli
 Suggests:
-    proxymix,
     kernR,
     mvtnorm,
     testthat (>= 3.0.0),

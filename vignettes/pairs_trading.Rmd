@@ -129,9 +129,8 @@ The pairs-trading workflow here is built entirely from the general machinery:
 the regime-switching generalisation of the `kalman_filter()`, and `its_causal()`
 forecasts with the same `ssm()` and Kalman recursion. The mean-reverting spread
 is one application; the same tools serve any latent state observed through
-noise. The optional `engine = "proxymix"` path lets the regime filter defer to
-a sibling package's mixture-Kalman engine where one is installed, but the native
-filter is the default and always available.
+noise. The regime filter is self-contained: the whole recursion runs on the
+package's own mixture engine with no dependence on any other package.
 
 ## References
 

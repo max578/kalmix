@@ -1,8 +1,7 @@
 ## Standalone spread-construction and mean-reversion estimation.
 ##
 ## Neither function depends on a sibling package: kalmix builds and fits a
-## cointegration spread on its own, and only the (optional) mixture Kalman
-## filter reaches for proxymix. This keeps kalmix standalone-functional.
+## cointegration spread on its own. This keeps kalmix standalone-functional.
 
 #' Build a cointegration spread from two price series
 #'

@@ -4,13 +4,7 @@
 \alias{kalmix_filter}
 \title{Filter a regime-switching spread state (mixture Kalman)}
 \usage{
-kalmix_filter(
-  model,
-  y,
-  n_regimes = 2L,
-  vol_multipliers = NULL,
-  engine = c("native", "proxymix")
-)
+kalmix_filter(model, y, n_regimes = 2L, vol_multipliers = NULL)
 }
 \arguments{
 \item{model}{A \link{spread_model} giving the mean-reversion dynamics of the
@@ -24,8 +18,6 @@ Defaults to \code{2}.}
 \item{vol_multipliers}{A numeric vector of length \code{n_regimes} giving each
 regime's observation-noise multiple of the fitted spread variance, or
 \code{NULL} for a geometric spread from calm to turbulent. Defaults to \code{NULL}.}
-
-\item{engine}{Character scalar — \code{"native"} (default) or \code{"proxymix"}.}
 }
 \value{
 A \link{regime_fit} over the spread's volatility regimes. When
@@ -45,9 +37,7 @@ regime at every step.
 }
 \details{
 The recursion runs on the package's native engine and needs no sibling
-package. If \code{proxymix} and its mixture-Kalman primitive are installed and
-\code{engine = "proxymix"} is requested, that engine is used instead; otherwise
-the native filter is used and remains the default.
+package.
 
 The regime models operate on deviations from the fitted long-run mean: the
 discrete-time Ornstein-Uhlenbeck dynamics are the plain autoregressive

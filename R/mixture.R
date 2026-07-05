@@ -10,9 +10,7 @@
 # keeps the recursion exact-per-step and linear in the number of regimes, with
 # no dependence on a sibling package.
 #
-# This is the real native engine the formerly-dormant kalmix_filter() now wraps
-# for the pairs-trading application; an optional proxymix path is offered but is
-# never required.
+# This is the engine kalmix_filter() wraps for the pairs-trading application.
 
 #' A regime-switching mixture filter pass
 #'
@@ -62,11 +60,6 @@ regime_fit <- S7::new_class(
 #' returned regime probabilities are the filtered posterior over the active
 #' regime.
 #'
-#' This is the package's native regime engine and runs standalone. An optional
-#' `proxymix` path can be requested with `engine = "proxymix"`; it is used only
-#' when that package and its mixture-Kalman primitive are installed, and the
-#' native engine is the default and the fallback.
-#'
 #' @param models A list of two or more [ssm] objects, one per regime, sharing a
 #'   common state and observation dimension.
 #' @param y A numeric vector or `n` by `d` matrix of observations.
@@ -75,9 +68,6 @@ regime_fit <- S7::new_class(
 #'   high probability. Defaults to `NULL`.
 #' @param init_prob A length-`k` vector of initial regime probabilities, or
 #'   `NULL` for a uniform prior. Defaults to `NULL`.
-#' @param engine Character scalar — `"native"` (the default, self-contained) or
-#'   `"proxymix"` (used only if `proxymix` and its mixture-Kalman primitive are
-#'   available, otherwise it falls back to native with a message).
 #'
 #' @returns A [regime_fit].
 #' @family state-space
@@ -104,24 +94,13 @@ regime_fit <- S7::new_class(
 mixture_filter <- function(models,
                            y,
                            transition = NULL,
-                           init_prob = NULL,
-                           engine = c("native", "proxymix")) {
-  engine <- match.arg(engine)
+                           init_prob = NULL) {
   .check_regime_models(models)
   k <- length(models)
   y <- .check_observations(y, models[[1L]])
 
   transition <- .check_regime_transition(transition, k)
   init_prob <- .check_regime_init(init_prob, k)
-
-  if (engine == "proxymix" && .proxymix_has_filter()) {
-    return(.mixture_filter_proxymix(models, y, transition, init_prob))
-  }
-  if (engine == "proxymix") {
-    cli::cli_inform(c(
-      "i" = "{.pkg proxymix} mixture-Kalman engine unavailable; using the native filter."
-    ))
-  }
 
   .mixture_filter_native(models, y, transition, init_prob)
 }
@@ -211,29 +190,6 @@ mixture_filter <- function(models,
     state_cov = state_cov,
     log_lik = log_lik,
     n_regimes = as.integer(k)
-  )
-}
-
-#' Optional proxymix-backed regime filter
-#'
-#' Delegates to `proxymix::gmm_filter()` when it is available, returning a
-#' [regime_fit] from its output. Reached only when the caller requested
-#' `engine = "proxymix"` and the primitive exists; the native filter is the
-#' default. The call is resolved dynamically so the package checks clean while
-#' the commissioned primitive is still pending in `proxymix`.
-#'
-#' @param models A validated list of regime [ssm] objects.
-#' @param y The validated observation matrix.
-#' @param transition The regime-transition matrix.
-#' @param init_prob The initial regime distribution.
-#'
-#' @returns A [regime_fit].
-#' @noRd
-#' @keywords internal
-.mixture_filter_proxymix <- function(models, y, transition, init_prob) {
-  gmm_filter <- get("gmm_filter", envir = asNamespace("proxymix")) # nocov
-  gmm_filter( # nocov
-    models = models, y = y, transition = transition, init_prob = init_prob
   )
 }
 

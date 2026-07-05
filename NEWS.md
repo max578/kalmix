@@ -1,5 +1,16 @@
 # kalmix (development version)
 
+## Breaking changes
+
+* **The optional `proxymix` engine is removed.** `mixture_filter()` and
+  `kalmix_filter()` no longer take an `engine` argument, and `proxymix` has
+  left `Suggests`. The delegated path assumed a regime-switching signature
+  that `proxymix::gmm_filter()` does not provide (it is a mixture-prior
+  Gaussian-sum filter), so requesting that engine could never run the
+  delegated call. The package's native Gaussian pseudo-Bayesian (GPB1)
+  recursion, always the default, is now the only engine. Callers who passed
+  `engine = "native"` can simply drop the argument; results are unchanged.
+
 ## New features
 
 * **Heavy-tailed (Student-t) observation model.** `ssm()` gains an

@@ -66,21 +66,3 @@ test_that("mixture_filter() validates models, transition and init_prob", {
   )
 })
 
-test_that("mixture_filter() falls back to native when proxymix is absent", {
-  skip_if(.proxymix_has_filter(), "proxymix mixture-Kalman primitive present")
-  m1 <- ssm(
-    transition = 1, observation = 1, state_cov = 0.01, obs_cov = 0.25,
-    init_state = 0, init_cov = 1
-  )
-  m2 <- ssm(
-    transition = 1, observation = 1, state_cov = 0.01, obs_cov = 4,
-    init_state = 0, init_cov = 1
-  )
-  withr::local_seed(4L)
-  y <- stats::rnorm(40)
-  expect_message(
-    fit <- mixture_filter(list(m1, m2), y, engine = "proxymix"),
-    "native"
-  )
-  expect_s3_class(fit, "kalmix::regime_fit")
-})
