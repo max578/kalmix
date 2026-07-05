@@ -4,8 +4,8 @@
 # Assimilative Causal Inference reads a causal verdict off a state-space model
 # under the maintained assumption that the model is the data-generating
 # mechanism; it does not, on its own, test that assumption. A verdict computed
-# from a model that cannot even describe the observed series is not an honest
-# verdict, so kalmix runs the standard innovation diagnostics of state-space
+# from a model that cannot even describe the observed series should not stand,
+# so kalmix runs the standard innovation diagnostics of state-space
 # model checking (Harvey 1989; Durbin and Koopman 2012) over the one-step-ahead
 # prediction errors and turns the result into an abstention: when the
 # standardised innovations are not white, not correctly scaled, or not Gaussian,
@@ -14,28 +14,29 @@
 # Model adequacy is a necessary, not a sufficient, condition for a grounded
 # causal claim. Passing the diagnostics shows only that the model is a
 # self-consistent description of the data; it does not verify the model against
-# an external authority, which is what grounding means (provenance_vocabulary.md
-# section 1: self-consistency does not ground a fact). The two axes are kept
-# apart here: innovation_diagnostics() is the internal statistical check, and
+# an external authority, which is what grounding means here: self-consistency
+# alone never grounds a claim. The two axes are kept
+# apart: innovation_diagnostics() is the internal statistical check, and
 # the grounding token is set to "grounded" only when an adequate model is also
 # accompanied by declared, dated mechanism provenance. The default verdict is
-# the honest "[unverified]".
+# "[unverified]".
 
 # Canonical grounding tokens ---------------------------------------------------
 
-# The two grounding states of provenance_vocabulary.md, hardcoded because kalmix
-# is standalone (invariant 1) and cannot source the orchestra's
-# integration/orchestra_manifest.R. The square brackets on the unverified token
-# are load-bearing: they make an un-grounded label unmissable in a verdict line.
+# kalmix's grounding vocabulary is two tokens. "grounded": the claim has been
+# checked against the external authority that owns it, on a recorded date.
+# "[unverified]": everything else, including every self-consistent-but-
+# unchecked result. The square brackets on the unverified token are
+# load-bearing: they make an un-grounded label unmissable in a verdict line.
 
 .grounding_grounded <- "grounded"
 .grounding_unverified <- "[unverified]"
 
 #' Worst-case combination of grounding tokens
 #'
-#' Combines grounding tokens so that a verdict built from several inputs is
-#' grounded only if every input is grounded -- one un-grounded input taints the
-#' whole verdict (provenance_vocabulary.md section 2b).
+#' Combines grounding tokens under the worst-case rule: a verdict built from
+#' several inputs is grounded only if every input is grounded, so one
+#' un-grounded input taints the whole verdict.
 #'
 #' @param ... Grounding token strings.
 #'
@@ -54,9 +55,8 @@
 #' Is the supplied mechanism provenance grounded?
 #'
 #' A mechanism is grounded only when its provenance carries a non-`NA` date on
-#' which the model was checked against the external authority that owns it
-#' (provenance_vocabulary.md section 2a: a fact is grounded if and only if
-#' `verified_on` is a non-`NA` `Date`).
+#' which the model was checked against the external authority that owns it: a
+#' claim is grounded if and only if `verified_on` is a non-`NA` `Date`.
 #'
 #' @param mechanism `NULL`, or a list with a `verified_on` `Date` entry.
 #'
@@ -322,7 +322,7 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
 #' Combines the model-adequacy diagnostics with any declared mechanism
 #' provenance into a grounding token and a short reason. An inadequate model
 #' abstains outright; an adequate model is grounded only when its provenance has
-#' been verified against an external authority, and is otherwise the honest
+#' been verified against an external authority, and is otherwise
 #' `[unverified]`.
 #'
 #' @param adequacy An [innov_diag].

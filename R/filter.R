@@ -12,6 +12,8 @@
 # The engine is the package's own native filter and never requires a sibling
 # package.
 
+# The pairs-trading filter verb -----------------------------------------------
+
 #' Filter a regime-switching spread state (mixture Kalman)
 #'
 #' Filters the latent mean-reverting state of a spread through a finite
@@ -90,6 +92,8 @@ kalmix_filter <- function(model,
   fit@state_mean <- fit@state_mean + model@theta
   fit
 }
+
+# Regime-construction helpers -------------------------------------------------
 
 #' Per-regime observation-noise multipliers for the spread filter
 #'

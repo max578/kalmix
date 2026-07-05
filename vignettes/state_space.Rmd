@@ -33,8 +33,8 @@ $$x_t = A_t\, x_{t-1} + w_t, \qquad w_t \sim N(0, Q_t),$$
 $$y_t = B_t\, x_t + v_t, \qquad v_t \sim N(0, R_t).$$
 
 `ssm()` builds this from the four system matrices plus a prior on the initial
-state. The simplest case is the local level -- a random walk seen through
-observation noise -- which can be written with bare scalars:
+state. The simplest case is the local level (a random walk seen through
+observation noise), which can be written with bare scalars:
 
 ```{r local-level}
 library(kalmix)
@@ -88,7 +88,7 @@ c(filtered = rmse(fit@filtered_mean[, 1], level),
   smoothed = rmse(smoothed@smoothed_mean[, 1], level))
 ```
 
-The smoothed estimate has the lower error, as it must -- it has seen the
+The smoothed estimate has the lower error, as it must: it has seen the
 future as well as the past.
 
 ## A vector state
@@ -116,7 +116,7 @@ vfit@filtered_mean[150, 2]
 ```
 
 The recovered velocity sits close to the true `0.5`, even though velocity was
-never observed -- the model infers it from the rate of change of the position.
+never observed: the model infers it from the rate of change of the position.
 
 ## References
 

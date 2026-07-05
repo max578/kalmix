@@ -84,8 +84,7 @@ innovations are not white, not correctly scaled, or not Gaussian is declared
 inadequate, so the verdict abstains with a \verb{[unverified]} grounding token.
 Passing the diagnostics establishes self-consistency only; the verdict is
 labelled \code{"grounded"} solely when an adequate model is accompanied by
-declared, dated \code{mechanism} provenance, and is the honest \code{"[unverified]"}
-otherwise.
+declared, dated \code{mechanism} provenance, and is \code{"[unverified]"} otherwise.
 }
 \examples{
 ## A latent oscillation seen through a slow, noisy observation channel: the

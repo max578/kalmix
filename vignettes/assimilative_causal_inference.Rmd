@@ -18,7 +18,7 @@ The interrupted-time-series contrast of `its_causal()` asks what an
 intervention *did*. Assimilative causal inference asks a different question:
 across a continuously observed series, *when* and *how far ahead* does a hidden
 driver carry causal information about what we measure. `aci()` answers it by
-reading a divergence off the two passes `kalmix` already provides -- the Kalman
+reading a divergence off the two passes `kalmix` already provides: the Kalman
 filter and the Rauch-Tung-Striebel smoother.
 
 ## Causality as an assimilation problem
@@ -37,7 +37,7 @@ $$I_t = D_{\mathrm{KL}}\!\left(
 
 For two Gaussians this is a closed form, which `kalmix` computes natively. Time
 averaged, and integrated over an expanding future window, the divergence yields
-a threshold-free *causal information rate* -- a decision lead-time in the time
+a threshold-free *causal information rate*, a decision lead-time in the time
 units of the series.
 
 ## A known-truth test: a recharge oscillator
@@ -48,7 +48,7 @@ canonical conceptual model of the El Nino-Southern Oscillation (ENSO). The
 hidden state $(T, h)$ is a sea-surface-temperature anomaly $T$ and a
 thermocline-depth anomaly $h$; their coupled, weakly damped dynamics produce an
 irregular oscillation of roughly four years. We observe only a scalar that warm
-$T$ drives through a coupling `kappa` -- think of a crop-water-stress index that
+$T$ drives through a coupling `kappa`. Think of a crop-water-stress index that
 rises in an El Nino year. When `kappa` is zero the observation tells us nothing
 about the hidden cause.
 
@@ -88,7 +88,7 @@ fit
 ```
 
 Two things to check against the known truth. First, the smoother recovers the
-hidden SST anomaly from the observed series *alone* -- the inverse-problem
+hidden SST anomaly from the observed series *alone*, the inverse-problem
 essence:
 
 ```{r recovery}
@@ -114,7 +114,7 @@ par(op)
 
 ## The null carries no causal information
 
-Under the null -- no coupling between the hidden state and the observation --
+Under the null of no coupling between the hidden state and the observation,
 the future of the series adds nothing the filter did not already have, so the
 causal information collapses to zero and the lead-time with it. This is the
 discriminating behaviour a causal read-out must show:
@@ -142,15 +142,15 @@ carries neither.
 The metric `aci()` reads off the two passes is the relative entropy between the
 smoother and filter Gaussians at each step. This is canonical Gaussian
 arithmetic, so `kalmix` implements it natively and stays self-contained. Where
-the orchestra's `kernR` package is installed, its `relative_entropy()` provides
-an independent check on the value -- the package's test suite asserts the two
+the `kernR` package is installed, its `relative_entropy()` provides
+an independent check on the value: the package's test suite asserts the two
 agree and skips the comparison when `kernR` is absent, so `kalmix` builds and
 checks cleanly either way.
 
 ## Grounding the verdict: abstention under model error
 
 ACI reads its causal verdict off a state-space model, so the verdict is only as
-honest as the model. A model that cannot even describe the observed series
+good as the model. A model that cannot even describe the observed series
 cannot support a causal claim about it. `aci()` therefore grounds every read-out
 through `innovation_diagnostics()`, the standard battery of state-space model
 checks run on the standardised one-step-ahead innovations: a Ljung-Box test for
@@ -170,11 +170,11 @@ c(grounding = abstained@grounding, reason = abstained@grounding_reason)
 abstained@adequacy
 ```
 
-Passing the diagnostics establishes self-consistency only -- it does not verify
+Passing the diagnostics establishes self-consistency only. It does not verify
 the model against the outside world, which is what grounding means. An adequate
 model is labelled `"grounded"` solely when it is accompanied by declared, dated
 mechanism provenance: a record that the model was checked against the external
-authority that owns it. Without that, the honest label stays `[unverified]`,
+authority that owns it. Without that, the label stays `[unverified]`,
 even when the model fits.
 
 ```{r grounded}
@@ -186,8 +186,8 @@ aci(model, sim$x, dt = sim$dt,
 ```
 
 This is ACI's guard against its own central limitation: the verdict is only as
-good as the model, so a model the data reject -- or one whose standing as the
-true mechanism has never been checked -- is never allowed to pass as a grounded
+good as the model, so a model the data reject, or one whose standing as the
+true mechanism has never been checked, is never allowed to pass as a grounded
 causal claim.
 
 ## The lead-time without re-smoothing
@@ -195,8 +195,8 @@ causal claim.
 The decision lead-time integrates a divergence profile over an expanding future
 window. Formed directly, each window length reruns the smoother on a truncated
 series. `kalmix` instead grows the smoothed estimate of the anchor state forward
-in place as each later observation is assimilated -- a fixed-point smoother
-recursion that accumulates the Rauch-Tung-Striebel gains -- so the whole profile
+in place as each later observation is assimilated (a fixed-point smoother
+recursion that accumulates the Rauch-Tung-Striebel gains), so the whole profile
 costs one filter-smoother pass and a light forward recursion per anchor, with no
 re-smoothing. This `online` engine is the default; the `expanding` engine is
 retained as an independent cross-check, and the two agree to numerical
@@ -218,7 +218,7 @@ single forward pass.
 
 The known-truth oscillator proves the read-out is internally consistent. As an
 external check, the package's test suite also runs `aci()` on the real NOAA
-Oceanic Nino Index -- a recorded copy ships as a test fixture, and an
+Oceanic Nino Index: a recorded copy ships as a test fixture, and an
 online-gated test confirms the read-out behaves on data nobody in this package
 generated. On the recorded index the smoother tracks the observed ENSO swing
 closely and the decision lead-time lands near half a year, the kind of

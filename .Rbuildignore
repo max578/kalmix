@@ -8,3 +8,4 @@
 ^\.cursor$
 ^LICENSE\.md$
 ^\.github$
+^de_vibe_.*\.md$

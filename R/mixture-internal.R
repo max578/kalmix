@@ -5,6 +5,8 @@
 # omits them, and validate any supplied ones. They keep mixture_filter()
 # reading as its contract.
 
+# Regime-model validation -----------------------------------------------------
+
 #' Validate a list of regime models
 #'
 #' Checks that `models` is a list of at least two [ssm] objects that share a
@@ -34,6 +36,8 @@
   }
   invisible(NULL)
 }
+
+# Transition and prior defaults -----------------------------------------------
 
 #' Validate or default the regime-transition matrix
 #'

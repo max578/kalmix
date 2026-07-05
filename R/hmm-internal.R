@@ -5,6 +5,8 @@
 # validators that keep hmm(), hmm_filter() and hmm_viterbi() reading as their
 # contracts.
 
+# Numerical helpers -----------------------------------------------------------
+
 #' Log-sum-exp of a numeric vector
 #'
 #' Computes \eqn{\log \sum_i \exp(x_i)} with the standard max-shift so the sum
@@ -47,6 +49,8 @@
     )
   }, numeric(length(y)))
 }
+
+# Validation helpers ----------------------------------------------------------
 
 #' Validate the assembled properties of an hmm object
 #'

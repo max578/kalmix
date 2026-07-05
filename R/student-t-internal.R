@@ -21,6 +21,8 @@
 #   Roth, M., Ozkan, E. and Gustafsson, F. (2013). A Student's t filter for heavy
 #     tailed process and measurement noise. ICASSP, 5770-5774.
 
+# Densities -------------------------------------------------------------------
+
 #' Multivariate Student-t log-density at a zero-mean point
 #'
 #' The log density of a `d`-variate Student-t with `df` degrees of freedom,
@@ -43,6 +45,8 @@
   lgamma((df + d) / 2) - lgamma(df / 2) - 0.5 * d * log(df * pi) -
     0.5 * log_det - 0.5 * (df + d) * log1p(quad / df)
 }
+
+# The robust update -----------------------------------------------------------
 
 #' One robust (Student-t) Kalman update step
 #'
@@ -105,6 +109,8 @@
   s0 <- bpb + r
   list(x = x, p = p, s = s0, loglik = .mvt_logpdf(e, s0, df))
 }
+
+# Diagnostics and cloning -----------------------------------------------------
 
 #' Scale and family-fit diagnostics under a Student-t observation model
 #'

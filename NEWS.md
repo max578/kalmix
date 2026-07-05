@@ -37,9 +37,8 @@
   token (`grounding`, `grounding_reason` and `adequacy` are new `aci_fit`
   fields), and a verdict is labelled `"grounded"` only when an adequate model
   carries declared, dated mechanism provenance through the new `mechanism`
-  argument. The grounding tokens follow the orchestra's provenance vocabulary,
-  so passing the diagnostics establishes self-consistency without, on its own,
-  claiming external verification.
+  argument. Passing the diagnostics establishes self-consistency without, on
+  its own, claiming external verification.
 
 * **Adaptive online smoother for the causal information rate.**
   `causal_information_rate()` gains an `engine` argument. The default
@@ -112,8 +111,8 @@ This development cycle adds the time-resolved assimilative-causal-inference
   divergence profile, returning a decision lead-time in the time units of the
   series.
 * **Native Gaussian relative entropy.** The smoother-vs-filter divergence is
-  computed natively in closed form, so the ACI path is self-contained. When the
-  orchestra's `kernR` package is installed its `relative_entropy()` is used as
+  computed natively in closed form, so the ACI path is self-contained. When
+  the `kernR` package is installed its `relative_entropy()` is used as
   an independent oracle in the test suite; the comparison skips when `kernR` is
   absent, so the package builds and checks cleanly either way (`kernR` is
   `Suggests`-only).

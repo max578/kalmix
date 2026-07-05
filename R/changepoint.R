@@ -9,6 +9,8 @@
 # clears a penalty -- which keeps the search exact-per-segment and transparent.
 # A penalised criterion (BIC by default) guards against spurious splits.
 
+# The changepoint_fit class ---------------------------------------------------
+
 #' A change-point detection result
 #'
 #' An S7 object holding the output of [detect_changepoint()]: the detected
@@ -38,6 +40,8 @@ changepoint_fit <- S7::new_class(
     method = S7::class_character
   )
 )
+
+# The detection verb ----------------------------------------------------------
 
 #' Detect change-points in the mean of a sequence
 #'
@@ -116,6 +120,8 @@ detect_changepoint <- function(x, penalty = "mbic", min_segment = 5L) {
     method = "binary-segmentation"
   )
 }
+
+# Segmentation internals ------------------------------------------------------
 
 #' Recursive binary segmentation of one interval
 #'

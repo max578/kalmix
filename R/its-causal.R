@@ -7,7 +7,7 @@
 # series would have followed, and the observed post-intervention path is
 # contrasted with that counterfactual. The pointwise and cumulative effects
 # carry predictive intervals from the forecast covariance, so a null effect is
-# reported honestly rather than asserted. This is the single-case
+# reported as a null rather than asserted away. This is the single-case
 # interrupted-time-series design done on the Kalman forecast.
 
 #' A single-case interrupted-time-series causal contrast
@@ -61,8 +61,8 @@ its_fit <- S7::new_class(
 #' state is projected forward across the post-intervention window, and the
 #' observed values are differenced against that forecast. The forecast
 #' covariance gives a predictive interval, so the pointwise, cumulative and
-#' average effects each carry an honest uncertainty band -- a genuinely null
-#' effect shows an interval that straddles zero.
+#' average effects each carry a calibrated uncertainty band, and a genuinely
+#' null effect shows an interval that straddles zero.
 #'
 #' The design is the single-case (N-of-1) interrupted time series; it is causal
 #' only under the maintained assumption that, absent the intervention, the

@@ -23,9 +23,9 @@ filter, and reads a causal contrast off an event with `its_causal()`.
 
 ## A cointegration spread
 
-We simulate two cointegrated series -- `b` is a random walk, and `a` tracks it
-with a hedge ratio of two plus a mean-reverting spread `u` (a stationary AR(1)
-process, the realistic cointegration case) -- then recover the spread:
+We simulate two cointegrated series, then recover the spread: `b` is a random
+walk, and `a` tracks it with a hedge ratio of two plus a mean-reverting spread
+`u` (a stationary AR(1) process, the realistic cointegration case).
 
 ```{r spread}
 b <- cumsum(rnorm(500))
@@ -57,10 +57,10 @@ half_life(model)
 ```
 
 The half-life is the expected time for a deviation from the long-run mean to
-halve -- the single most useful number for sizing a mean-reversion trade.
+halve, the single most useful number for sizing a mean-reversion trade.
 
-A series whose dynamics are inconsistent with an Ornstein-Uhlenbeck process --
-here an anti-persistent series with negative autocorrelation -- is refused
+A series whose dynamics are inconsistent with an Ornstein-Uhlenbeck process
+(here an anti-persistent series with negative autocorrelation) is refused
 rather than fitted with a meaningless half-life:
 
 ```{r refuse, error = TRUE}
@@ -71,8 +71,8 @@ ou_fit(as.numeric(arima.sim(list(ar = -0.6), n = 500)))
 
 A spread is not equally tradeable at all times: it passes through calm periods
 and turbulent periods. `kalmix_filter()` expands the fitted spread into
-volatility regimes -- linear-Gaussian state-space models that share the spread
-dynamics but differ in observation noise -- and filters the spread through the
+volatility regimes (linear-Gaussian state-space models that share the spread
+dynamics but differ in observation noise) and filters the spread through the
 general `mixture_filter()` engine. The result is the filtered probability of
 each regime at every step.
 
@@ -101,16 +101,16 @@ mtext("P(turbulent)", side = 4, line = 2)
 ```
 
 The turbulent-regime probability (red) is low through the calm first half and
-high through the turbulent second half -- the signal a mean-reversion strategy
+high through the turbulent second half, the signal a mean-reversion strategy
 would condition position size on.
 
 ## A causal read on an event
 
-Suppose a structural event -- a corporate action, a regime change -- is
+Suppose a structural event (a corporate action, a regime change) is
 suspected to have shifted the spread at a known time. `its_causal()` forecasts
 the counterfactual spread the pre-event dynamics imply, and contrasts it with
-what was observed. Its interval is honest: a real effect excludes zero, a
-non-effect straddles it.
+what was observed. The interval separates the two outcomes: a real effect
+excludes zero, a non-effect straddles it.
 
 ```{r its}
 pre <- as.numeric(arima.sim(list(ar = 0.8), n = 80, sd = 0.5))

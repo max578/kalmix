@@ -13,6 +13,8 @@
 # x_t = A_t x_{t-1} + w_t with w_t ~ N(0, Q_t), and is observed through
 # y_t = B_t x_t + v_t with v_t ~ N(0, R_t).
 
+# The ssm class ---------------------------------------------------------------
+
 #' A linear-Gaussian state-space model
 #'
 #' An S7 object specifying a discrete-time linear-Gaussian state-space model,
