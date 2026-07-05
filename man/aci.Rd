@@ -12,11 +12,14 @@ aci(
   eval_points = NULL,
   max_lag = NULL,
   mechanism = NULL,
-  alpha = 0.05
+  alpha = 0.05,
+  transition = NULL,
+  init_prob = NULL
 )
 }
 \arguments{
-\item{model}{An \link{ssm}.}
+\item{model}{An \link{ssm}, or a list of two or more \link{ssm} regimes for a
+regime-switching read-out.}
 
 \item{y}{A numeric vector or \code{n} by \code{d} matrix of observations.}
 
@@ -44,6 +47,10 @@ mechanism can raise an adequate read-out to a \code{"grounded"} verdict.}
 
 \item{alpha}{Numeric scalar -- the significance level the model-adequacy
 diagnostics abstain at. Defaults to \code{0.05}.}
+
+\item{transition, init_prob}{The regime-transition matrix and initial
+regime distribution when \code{model} is a list of regimes (see
+\code{\link[=mixture_filter]{mixture_filter()}}); ignored for an \link{ssm}. Default to \code{NULL}.}
 }
 \value{
 An \link{aci_fit}.
@@ -76,11 +83,14 @@ those approximations as exact Gaussians, so the causal information and
 lead-time inherit the variational approximation; the Gaussian family
 involves no approximation.
 
-A regime-switching fit is not accepted here: the read-out needs a smoother
-pass, and a regime (GPB1) smoother is not yet implemented. A regime model
-can still be \emph{certified} directly by passing its \link{regime_fit} to
-\code{\link[=innovation_diagnostics]{innovation_diagnostics()}}, which tests the collapsed one-step
-innovations.
+A regime-switching model is supplied as a list of \link{ssm} regimes (with the
+optional \code{transition} and \code{init_prob} of \code{\link[=mixture_filter]{mixture_filter()}}): the read-out
+then compares the Kim smoother's collapsed posteriors with the GPB1
+filter's. Both are the model class's own Gaussian collapses of the true
+mixtures, so the causal information inherits that approximation; the
+verdict is grounded through the mixture-PIT diagnostics, and the
+lead-time uses the expanding-window construction (the online recursion is
+linear-Gaussian only).
 
 The recovered state is interpretable as a cause of the observed series only
 under the maintained assumption that the \link{ssm} is the data-generating

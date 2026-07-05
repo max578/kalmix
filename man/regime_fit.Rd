@@ -55,6 +55,8 @@ Other state-space:
 \code{\link{kalman_filter}()},
 \code{\link{kalman_fit}()},
 \code{\link{mixture_filter}()},
+\code{\link{mixture_smoother}()},
+\code{\link{regime_smooth}()},
 \code{\link{rts_fit}()},
 \code{\link{rts_smoother}()},
 \code{\link{ssm}()},
