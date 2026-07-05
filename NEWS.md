@@ -1,3 +1,37 @@
+# kalmix (development version)
+
+## New features
+
+* **Intercepts (control inputs).** `ssm()` gains `state_intercept`
+  (\eqn{c_t}) and `obs_intercept` (\eqn{d_t}) in the standard
+  Durbin-Koopman form, static or time-varying, defaulting to zero. They
+  thread through both filter families, the regime machinery and
+  `ssm_fit()`. A stationary state with a non-zero long-run mean is now a
+  native one-liner (`state_intercept = theta * (1 - phi)`), and the
+  intercept-form regime filter reproduces `kalmix_filter()`'s shipped
+  deviation-form path exactly, so the two mechanisms validate each other.
+
+* **Regime (Kim) smoother.** The new `mixture_smoother()` runs the Kim
+  (1994) backward pass over the GPB1 forward recursion, returning smoothed
+  regime probabilities and collapsed state moments. With identical regimes
+  it reproduces `rts_smoother()` exactly; on a known switching path its
+  regime attribution is at least as accurate as the filter's.
+
+* **Assimilative causal inference on regime models.** `aci()` and
+  `causal_information_rate()` accept a list of `ssm` regimes (with the
+  chain's `transition` and `init_prob`): the causal information compares
+  the Kim smoother's collapsed posteriors with the GPB1 filter's, the
+  verdict grounds through the mixture-PIT diagnostics, and the lead-time
+  uses the expanding-window construction. Both densities are the model
+  class's own Gaussian collapses, an approximation the documentation
+  states.
+
+* **New vignette.** *The Elliott-van der Hoek-Malcolm spread model with
+  kalmix* reproduces the founding 2005 model with the general machinery
+  and demonstrates why the paper filters: least squares on the noisy
+  observed spread attenuates the autoregression and misprices the
+  half-life several-fold, while `ssm_fit()` recovers the true dynamics.
+
 # kalmix 0.4.0 (2026-07-05)
 
 ## New features
