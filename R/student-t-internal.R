@@ -176,6 +176,8 @@
     observation = model@observation,
     state_cov = model@state_cov,
     obs_cov = model@obs_cov,
+    state_intercept = model@state_intercept,
+    obs_intercept = model@obs_intercept,
     init_state = model@init_state,
     init_cov = model@init_cov,
     obs_family = family,

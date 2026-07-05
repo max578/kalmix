@@ -176,10 +176,12 @@ mixture_filter <- function(models,
       b <- .at_step(models[[j]]@observation, t)
       q <- .at_step(models[[j]]@state_cov, t)
       r <- .at_step(models[[j]]@obs_cov, t)
+      ci <- .at_step(models[[j]]@state_intercept, t)
+      di <- .at_step(models[[j]]@obs_intercept, t)
 
-      x_pred <- as.numeric(a %*% x_mix)
+      x_pred <- as.numeric(a %*% x_mix) + ci
       p_pred <- a %*% p_mix %*% t(a) + q
-      yhats[[j]] <- as.numeric(b %*% x_pred)
+      yhats[[j]] <- as.numeric(b %*% x_pred) + di
       preds[[j]] <- b %*% p_pred %*% t(b) + r
 
       if (missing_t) {
