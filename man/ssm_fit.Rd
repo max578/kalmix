@@ -63,15 +63,16 @@ filter's likelihood at the template's fixed degrees of freedom; combine
 with \code{\link[=estimate_obs_df]{estimate_obs_df()}} to choose the degrees of freedom.
 }
 \examples{
-## Recover the noise split of a local-level series.
+## Recover the noise split of a local-level series. One start keeps the
+## example fast; the default multi-start is the safer everyday setting.
 set.seed(1)
-level <- cumsum(rnorm(300, sd = 0.5))
-y <- level + rnorm(300)
+level <- cumsum(rnorm(150, sd = 0.5))
+y <- level + rnorm(150)
 template <- ssm(
   transition = 1, observation = 1, state_cov = 1, obs_cov = 1,
   init_state = y[1], init_cov = 10
 )
-fit <- ssm_fit(template, y)
+fit <- ssm_fit(template, y, n_start = 1L)
 fit@estimates$state_cov
 fit@estimates$obs_cov
 }
