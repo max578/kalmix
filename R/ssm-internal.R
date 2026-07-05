@@ -167,7 +167,10 @@
 #' Checks that the observations supplied to [kalman_filter()] (and the other
 #' recursions) form a numeric matrix with the model's observation dimension in
 #' its columns, and that a time-varying model has exactly as many system
-#' matrices as there are observation rows.
+#' matrices as there are observation rows. Missing observations are admitted
+#' row-wise: a fully `NA` row is a prediction-only step for the filters, while
+#' a partially observed row is refused (a sub-vector update is not supported),
+#' so a half-missing row cannot silently misbehave.
 #'
 #' @param y A numeric vector or matrix of observations.
 #' @param model An [ssm].
@@ -188,8 +191,17 @@
       "`y` must have {d} column{?s} to match the model's observation dimension."
     )
   }
-  if (anyNA(y)) {
-    cli::cli_abort("`y` must not contain missing values.")
+  if (anyNA(y) && d > 1L) {
+    n_missing <- rowSums(is.na(y))
+    partial <- n_missing > 0L & n_missing < d
+    if (any(partial)) {
+      cli::cli_abort(c(
+        "`y` rows must be fully observed or fully missing.",
+        "i" = "Partially missing row{?s}: {which(partial)}.",
+        "i" = "A fully `NA` row is skipped (prediction only); sub-vector
+               updates for partially observed rows are not supported."
+      ))
+    }
   }
   n <- nrow(y)
   for (nm in c("transition", "observation", "state_cov", "obs_cov")) {

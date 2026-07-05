@@ -10,7 +10,10 @@ kalman_filter(model, y)
 \item{model}{An \link{ssm}.}
 
 \item{y}{A numeric vector (univariate) or \code{n} by \code{d} matrix (multivariate)
-of observations.}
+of observations. A fully \code{NA} entry (row) marks a missing observation:
+the filter runs a prediction-only step there, records an \code{NA} innovation
+and adds nothing to the log-likelihood. Partially missing multivariate
+rows are refused.}
 }
 \value{
 A \link{kalman_fit}.

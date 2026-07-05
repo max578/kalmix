@@ -7,7 +7,11 @@
 innovation_diagnostics(object, lags = NULL, alpha = 0.05)
 }
 \arguments{
-\item{object}{A \link{kalman_fit}.}
+\item{object}{A \link{kalman_fit}, or a \link{regime_fit} from \code{\link[=mixture_filter]{mixture_filter()}} /
+\code{\link[=kalmix_filter]{kalmix_filter()}}, whose collapsed one-step innovations are tested the
+same way (the collapsed mixture predictive is treated as Gaussian, the
+same collapse the GPB1 recursion itself makes). Innovations at missing
+observations are skipped; the tests run on the complete steps.}
 
 \item{lags}{Integer scalar -- the Ljung-Box lag. Defaults to \code{NULL}, which
 uses one fifth of the series length, capped between one and ten.}

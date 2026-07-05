@@ -91,8 +91,14 @@
   covs <- filter@innovation_cov
   n <- nrow(e)
   d <- ncol(e)
-  w <- matrix(0, nrow = n, ncol = d)
+  w <- matrix(NA_real_, nrow = n, ncol = d)
   for (t in seq_len(n)) {
+    if (anyNA(e[t, ])) {
+      # A missing observation has no innovation; the NA row is carried so the
+      # standardised matrix stays aligned with the series, and the tests run
+      # on the complete rows only.
+      next
+    }
     s_chol <- .safe_chol(covs[[t]], "innovation covariance")
     w[t, ] <- backsolve(s_chol, e[t, ], transpose = TRUE)
   }
@@ -201,7 +207,11 @@ innov_diag <- S7::new_class(
 #' which is necessary but not sufficient for a grounded causal claim (see
 #' [aci()] on declaring mechanism provenance).
 #'
-#' @param object A [kalman_fit].
+#' @param object A [kalman_fit], or a [regime_fit] from [mixture_filter()] /
+#'   [kalmix_filter()], whose collapsed one-step innovations are tested the
+#'   same way (the collapsed mixture predictive is treated as Gaussian, the
+#'   same collapse the GPB1 recursion itself makes). Innovations at missing
+#'   observations are skipped; the tests run on the complete steps.
 #' @param lags Integer scalar -- the Ljung-Box lag. Defaults to `NULL`, which
 #'   uses one fifth of the series length, capped between one and ten.
 #' @param alpha Numeric scalar -- the per-battery significance level the
@@ -233,14 +243,18 @@ innov_diag <- S7::new_class(
 #' y <- level + rnorm(300)
 #' innovation_diagnostics(kalman_filter(model, y))
 innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
-  if (!S7::S7_inherits(object, kalman_fit)) {
-    cli::cli_abort("`object` must be a {.cls kalman_fit}.")
+  is_kalman <- S7::S7_inherits(object, kalman_fit)
+  if (!is_kalman && !S7::S7_inherits(object, regime_fit)) {
+    cli::cli_abort(
+      "`object` must be a {.cls kalman_fit} or a {.cls regime_fit}."
+    )
   }
   if (length(alpha) != 1L || !is.finite(alpha) || alpha <= 0 || alpha >= 1) {
     cli::cli_abort("`alpha` must be a scalar in (0, 1).")
   }
 
-  w <- .standardised_innovations(object)
+  w_full <- .standardised_innovations(object)
+  w <- w_full[stats::complete.cases(w_full), , drop = FALSE]
   n <- nrow(w)
   d <- ncol(w)
 
@@ -252,15 +266,18 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
     cli::cli_abort("`lags` must be a positive integer scalar.")
   }
 
-  model <- object@model
-  is_t <- identical(model@obs_family, "student_t") && is.finite(model@obs_df)
+  # A regime fit carries no single observation model; its collapsed mixture
+  # predictive is Gaussian by construction (the GPB1 collapse).
+  is_t <- is_kalman &&
+    identical(object@model@obs_family, "student_t") &&
+    is.finite(object@model@obs_df)
   family <- if (is_t) "student_t" else "gaussian"
 
   # Too short to judge: fail closed to an indeterminate verdict rather than
   # assert adequacy the data cannot support.
   if (n < max(20L, 3L * lags)) {
     return(innov_diag(
-      standardised = w, lags = lags, alpha = alpha,
+      standardised = w_full, lags = lags, alpha = alpha,
       n_obs = n, obs_dim = d, obs_family = family,
       adequate = NA, reason = "insufficient_data"
     ))
@@ -278,7 +295,7 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
   if (is_t) {
     # Student-t family: the standardised innovations are t-, not Gaussian-,
     # distributed, so the scale and family-fit tests read off the t-PIT.
-    tt <- .t_scale_family_tests(w, model@obs_df)
+    tt <- .t_scale_family_tests(w, object@model@obs_df)
     p_cal <- tt$scale_p
     p_norm <- tt$family_p
   } else {
@@ -302,7 +319,7 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
   adequate <- p_value >= alpha
 
   innov_diag(
-    standardised = w,
+    standardised = w_full,
     whiteness_p = p_white,
     calibration_p = p_cal,
     normality_p = p_norm,

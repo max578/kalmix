@@ -77,5 +77,6 @@ test_that("hmm verbs validate observations", {
   )
   expect_error(hmm_filter("x", 1:10), "hmm")
   expect_error(hmm_filter(model, 1), "at least two")
-  expect_error(hmm_viterbi(model, c(1, NA, 3)), "missing")
+  ## An NA is a missing observation (flat emission), not an input error.
+  expect_no_error(hmm_viterbi(model, c(1, NA, 3)))
 })

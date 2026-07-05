@@ -8,6 +8,8 @@ regime_fit(
   regime_prob = numeric(0),
   state_mean = numeric(0),
   state_cov = list(),
+  innovation = numeric(0),
+  innovation_cov = list(),
   log_lik = numeric(0),
   n_regimes = integer(0)
 )
@@ -20,6 +22,13 @@ row \code{t} summing to one over the \code{k} regimes.}
 state means.}
 
 \item{state_cov}{A list of \code{n} collapsed state covariances.}
+
+\item{innovation}{An \code{n} by \code{d} matrix of collapsed one-step innovations:
+the observation minus the mixture predictive mean under the chain-prior
+regime weights (\code{NA} at a missing observation).}
+
+\item{innovation_cov}{A list of \code{n} collapsed one-step predictive
+covariances matching \code{innovation}.}
 
 \item{log_lik}{Numeric scalar — the mixture model log-likelihood.}
 
