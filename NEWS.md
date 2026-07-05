@@ -42,6 +42,17 @@
 
 ## Bug fixes
 
+* **`kalmix_filter()` now tracks a spread with a non-zero long-run mean.** The
+  per-regime state-space models carried no intercept term, so the filtered
+  state was contracted toward zero rather than toward the fitted long-run
+  mean: on a spread centred at 5 the filtered mean sat roughly 6 per cent low.
+  The regime models are now the Ornstein-Uhlenbeck deviation form -- the
+  filter runs on `y - theta` and the returned state estimates are shifted
+  back to the observed scale, for both the mixture path and the
+  single-regime Kalman path. Regime probabilities, innovations and the
+  log-likelihood are unaffected by the reformulation, and for a spread whose
+  fitted long-run mean is near zero the change is negligible.
+
 * **`its_causal()` average-effect intervals were understated.** The augmented
   running-sum covariance recursion dropped the off-diagonal block of its
   process-noise covariance, losing the correlation between the state noise and
