@@ -50,6 +50,13 @@
   `engine = "expanding"` and cross-checks the online engine to numerical
   precision.
 
+## Package infrastructure
+
+* A README entry surface, a three-OS by three-R
+  continuous-integration check matrix, an explicit pre-1.0 API-stability
+  policy (`API_STABILITY.md` in the repository), and a `CITATION` that reads
+  the version from the package metadata instead of pinning it by hand.
+
 ## Bug fixes
 
 * **The causal-influence-range profile now matches its published
