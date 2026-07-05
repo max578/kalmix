@@ -140,14 +140,48 @@ mixture_filter <- function(models,
 #' @noRd
 #' @keywords internal
 .mixture_filter_native <- function(models, y, transition, init_prob) {
+  fwd <- .mixture_forward(models, y, transition, init_prob)
+  regime_fit(
+    regime_prob = fwd$regime_prob,
+    state_mean = fwd$state_mean,
+    state_cov = fwd$state_cov,
+    innovation = fwd$innovation,
+    innovation_cov = fwd$innovation_cov,
+    innovation_pit = fwd$innovation_pit,
+    log_lik = fwd$log_lik,
+    n_regimes = fwd$n_regimes
+  )
+}
+
+#' The shared GPB1 forward pass
+#'
+#' The forward recursion behind [mixture_filter()] and [mixture_smoother()].
+#' Beyond the collapsed moments the filter reports, it retains the per-step
+#' per-regime filtered moments and the chain-prior (predicted) regime
+#' probabilities, which the Kim backward pass consumes.
+#'
+#' @param models A validated list of `k` regime [ssm] objects.
+#' @param y The validated `n` by `d` observation matrix.
+#' @param transition The `k` by `k` regime-transition matrix.
+#' @param init_prob The length-`k` initial regime distribution.
+#'
+#' @returns A list of the collapsed outputs plus `regime_means` /
+#'   `regime_covs` (per step, a list of `k` per-regime filtered moments) and
+#'   `pred_prob` (the `n` by `k` chain-prior probabilities).
+#' @noRd
+#' @keywords internal
+.mixture_forward <- function(models, y, transition, init_prob) {
   k <- length(models)
   n <- nrow(y)
   m <- models[[1L]]@state_dim
   d <- models[[1L]]@obs_dim
 
   regime_prob <- matrix(0, nrow = n, ncol = k)
+  pred_prob <- matrix(0, nrow = n, ncol = k)
   state_mean <- matrix(0, nrow = n, ncol = m)
   state_cov <- vector("list", n)
+  regime_means <- vector("list", n)
+  regime_covs <- vector("list", n)
   innovation <- matrix(0, nrow = n, ncol = d)
   innovation_cov <- vector("list", n)
   innovation_pit <- if (d == 1L) rep(NA_real_, n) else numeric(0L)
@@ -176,10 +210,12 @@ mixture_filter <- function(models,
       b <- .at_step(models[[j]]@observation, t)
       q <- .at_step(models[[j]]@state_cov, t)
       r <- .at_step(models[[j]]@obs_cov, t)
+      ci <- .at_step(models[[j]]@state_intercept, t)
+      di <- .at_step(models[[j]]@obs_intercept, t)
 
-      x_pred <- as.numeric(a %*% x_mix)
+      x_pred <- as.numeric(a %*% x_mix) + ci
       p_pred <- a %*% p_mix %*% t(a) + q
-      yhats[[j]] <- as.numeric(b %*% x_pred)
+      yhats[[j]] <- as.numeric(b %*% x_pred) + di
       preds[[j]] <- b %*% p_pred %*% t(b) + r
 
       if (missing_t) {
@@ -240,14 +276,20 @@ mixture_filter <- function(models,
     }
 
     regime_prob[t, ] <- prob
+    pred_prob[t, ] <- prior
     state_mean[t, ] <- x_mix
     state_cov[[t]] <- p_mix
+    regime_means[[t]] <- means
+    regime_covs[[t]] <- covs
   }
 
-  regime_fit(
+  list(
     regime_prob = regime_prob,
+    pred_prob = pred_prob,
     state_mean = state_mean,
     state_cov = state_cov,
+    regime_means = regime_means,
+    regime_covs = regime_covs,
     innovation = innovation,
     innovation_cov = innovation_cov,
     innovation_pit = innovation_pit,

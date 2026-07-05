@@ -62,7 +62,12 @@
 #'   fixed-point smoother recursion that avoids re-smoothing and handles
 #'   time-varying models; `"expanding"` reruns the smoother on each truncated
 #'   series and requires a time-invariant model. The two agree to numerical
-#'   precision and cross-check each other.
+#'   precision and cross-check each other. A regime-switching model always
+#'   uses the expanding construction (the online recursion is
+#'   linear-Gaussian only) and `engine` is ignored.
+#' @param transition,init_prob The regime-transition matrix and initial
+#'   regime distribution when `model` is a list of regimes; passed to
+#'   [mixture_filter()] and [mixture_smoother()]. Ignored for an [ssm].
 #'
 #' @returns Numeric scalar -- the objective causal information rate (a lead-time
 #'   in the time units set by `dt`), `0` where no future information is
@@ -96,32 +101,46 @@ causal_information_rate <- function(model,
                                     eval_points = NULL,
                                     max_lag = NULL,
                                     n_lag = 12L,
-                                    engine = c("online", "expanding")) {
+                                    engine = c("online", "expanding"),
+                                    transition = NULL,
+                                    init_prob = NULL) {
   engine <- match.arg(engine)
-  if (!S7::S7_inherits(model, ssm)) {
-    cli::cli_abort("`model` must be an {.cls ssm}.")
+  is_regime <- is.list(model) && !S7::S7_inherits(model, ssm)
+  if (!is_regime && !S7::S7_inherits(model, ssm)) {
+    cli::cli_abort(
+      "`model` must be an {.cls ssm} or a list of {.cls ssm} regimes."
+    )
   }
   if (length(dt) != 1L || !is.finite(dt) || dt <= 0) {
     cli::cli_abort("`dt` must be a finite positive scalar.")
   }
-  y <- .check_observations(y, model)
+  ref_model <- if (is_regime) model[[1L]] else model
+  y <- .check_observations(y, ref_model)
   n <- nrow(y)
 
   # The expanding engine reruns the filter and smoother on truncated series,
   # which a time-varying model cannot honour (its per-step matrices would no
   # longer match the truncated length). The online engine assimilates forward in
   # place and has no such restriction, so only the expanding engine needs a
-  # static model.
-  if (identical(engine, "expanding")) {
-    static <- all(vapply(
-      c("transition", "observation", "state_cov", "obs_cov"),
-      function(nm) length(S7::prop(model, nm)) == 1L,
-      logical(1L)
-    ))
+  # static model. Regime models always use the expanding construction.
+  if (is_regime || identical(engine, "expanding")) {
+    check_static <- function(mod) {
+      all(vapply(
+        c("transition", "observation", "state_cov", "obs_cov",
+          "state_intercept", "obs_intercept"),
+        function(nm) length(S7::prop(mod, nm)) == 1L,
+        logical(1L)
+      ))
+    }
+    static <- if (is_regime) {
+      all(vapply(model, check_static, logical(1L)))
+    } else {
+      check_static(model)
+    }
     if (!static) {
       cli::cli_abort(c(
-        "The expanding engine needs a time-invariant {.cls ssm}.",
-        "i" = "Use {.code engine = \"online\"} for a time-varying model."
+        "The expanding engine needs time-invariant models.",
+        "i" = "Use {.code engine = \"online\"} for a time-varying {.cls ssm}."
       ))
     }
   }
@@ -136,6 +155,22 @@ causal_information_rate <- function(model,
 
   eval_points <- .aci_eval_points(eval_points, n, max_lag)
   lags <- unique(as.integer(round(seq(0, max_lag, length.out = n_lag))))
+
+  if (is_regime) {
+    filter <- mixture_filter(model, y, transition = transition,
+                             init_prob = init_prob)
+    complete <- mixture_smoother(model, y, transition = transition,
+                                 init_prob = init_prob)
+    per_anchor <- vapply(
+      eval_points,
+      function(t0) {
+        .aci_objective_regime(model, y, transition, init_prob, t0, lags,
+                              complete, filter)
+      },
+      numeric(1L)
+    )
+    return(mean(per_anchor) * dt)
+  }
 
   # One filter-smoother pass; the complete smoother is the reference every
   # window is compared with, and the filter feeds the online recursion.
@@ -154,6 +189,59 @@ causal_information_rate <- function(model,
     numeric(1L)
   )
   mean(per_anchor) * dt
+}
+
+#' Objective causal information range at one anchor for a regime model
+#'
+#' The regime-switching counterpart of `.aci_objective_at()`: the divergence
+#' profile compares the complete Kim smoother's collapsed posterior at the
+#' anchor with the collapsed estimate under data to `t0 + L` (the GPB1
+#' filter at `L = 0`, a truncated Kim smoother beyond). Both densities are
+#' the model class's own Gaussian collapses, so the profile inherits that
+#' approximation.
+#'
+#' @param models The list of regime [ssm] objects.
+#' @param y The `n` by `d` observation matrix.
+#' @param transition,init_prob The regime chain, as given to the verbs.
+#' @param t0 Integer scalar -- the anchor step.
+#' @param lags An increasing integer vector of window lengths starting at zero.
+#' @param complete The [regime_smooth] over the whole series.
+#' @param filter The [regime_fit] over the whole series.
+#'
+#' @returns Numeric scalar -- the objective range at `t0`, in steps.
+#' @noRd
+#' @keywords internal
+.aci_objective_regime <- function(models, y, transition, init_prob,
+                                  t0, lags, complete, filter) {
+  n <- nrow(y)
+  mc <- complete@smoothed_mean[t0, ]
+  pc <- complete@smoothed_cov[[t0]]
+
+  divergence <- vapply(
+    lags,
+    function(lag) {
+      end <- min(t0 + lag, n)
+      window <- if (lag == 0L || end <= t0) {
+        list(
+          mean = filter@state_mean[t0, ],
+          cov = filter@state_cov[[t0]]
+        )
+      } else {
+        sm <- mixture_smoother(
+          models, y[seq_len(end), , drop = FALSE],
+          transition = transition, init_prob = init_prob
+        )
+        list(
+          mean = sm@smoothed_mean[t0, ],
+          cov = sm@smoothed_cov[[t0]]
+        )
+      }
+      .gaussian_relative_entropy(mc, pc, window$mean, window$cov)
+    },
+    numeric(1L)
+  )
+
+  .cir_trapezoid(as.numeric(lags), divergence)
 }
 
 # Per-anchor range engines ------------------------------------------------

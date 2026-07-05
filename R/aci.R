@@ -49,8 +49,10 @@
 #'   causal information rate in time units, or `NA_real_` if not requested.
 #' @param dt Numeric scalar -- the sampling interval the lead-time is expressed
 #'   in. Defaults to `1`, so the lead-time is in steps.
-#' @param filter The [kalman_fit] the read-out was computed from.
-#' @param smoother The [rts_fit] the read-out was computed from.
+#' @param filter The forward pass the read-out was computed from: a
+#'   [kalman_fit], or a [regime_fit] for a regime-switching model.
+#' @param smoother The smoothing pass: an [rts_fit], or a [regime_smooth]
+#'   for a regime-switching model.
 #' @param grounding Character scalar -- the grounding token of the causal
 #'   verdict, `"grounded"` or `"[unverified]"`; see the token definitions in
 #'   [innovation_diagnostics()].
@@ -78,8 +80,8 @@ aci_fit <- S7::new_class(
       default = NA_real_
     ),
     dt = S7::new_property(class = S7::class_double, default = 1),
-    filter = kalman_fit,
-    smoother = rts_fit,
+    filter = S7::class_any,
+    smoother = S7::class_any,
     grounding = S7::new_property(
       class = S7::class_character,
       default = "[unverified]"
@@ -195,11 +197,14 @@ aci_fit <- S7::new_class(
 #' lead-time inherit the variational approximation; the Gaussian family
 #' involves no approximation.
 #'
-#' A regime-switching fit is not accepted here: the read-out needs a smoother
-#' pass, and a regime (GPB1) smoother is not yet implemented. A regime model
-#' can still be *certified* directly by passing its [regime_fit] to
-#' [innovation_diagnostics()], which tests the collapsed one-step
-#' innovations.
+#' A regime-switching model is supplied as a list of [ssm] regimes (with the
+#' optional `transition` and `init_prob` of [mixture_filter()]): the read-out
+#' then compares the Kim smoother's collapsed posteriors with the GPB1
+#' filter's. Both are the model class's own Gaussian collapses of the true
+#' mixtures, so the causal information inherits that approximation; the
+#' verdict is grounded through the mixture-PIT diagnostics, and the
+#' lead-time uses the expanding-window construction (the online recursion is
+#' linear-Gaussian only).
 #'
 #' The recovered state is interpretable as a cause of the observed series only
 #' under the maintained assumption that the [ssm] is the data-generating
@@ -211,11 +216,15 @@ aci_fit <- S7::new_class(
 #' labelled `"grounded"` solely when an adequate model is accompanied by
 #' declared, dated `mechanism` provenance, and is `"[unverified]"` otherwise.
 #'
-#' @param model An [ssm].
+#' @param model An [ssm], or a list of two or more [ssm] regimes for a
+#'   regime-switching read-out.
 #' @param y A numeric vector or `n` by `d` matrix of observations.
 #' @param lead_time Logical scalar -- whether to compute the objective causal
 #'   information rate and lead-time as well as the causal information series.
 #'   Defaults to `TRUE`.
+#' @param transition,init_prob The regime-transition matrix and initial
+#'   regime distribution when `model` is a list of regimes (see
+#'   [mixture_filter()]); ignored for an [ssm]. Default to `NULL`.
 #' @param dt Numeric scalar -- the sampling interval, so the lead-time is in
 #'   meaningful time units (for example years for an annual ENSO index).
 #'   Defaults to `1`, giving the lead-time in steps.
@@ -275,24 +284,47 @@ aci <- function(model,
                 eval_points = NULL,
                 max_lag = NULL,
                 mechanism = NULL,
-                alpha = 0.05) {
-  if (!S7::S7_inherits(model, ssm)) {
-    cli::cli_abort("`model` must be an {.cls ssm}.")
+                alpha = 0.05,
+                transition = NULL,
+                init_prob = NULL) {
+  is_regime <- is.list(model) && !S7::S7_inherits(model, ssm)
+  if (!is_regime && !S7::S7_inherits(model, ssm)) {
+    cli::cli_abort(
+      "`model` must be an {.cls ssm} or a list of {.cls ssm} regimes."
+    )
   }
   if (length(dt) != 1L || !is.finite(dt) || dt <= 0) {
     cli::cli_abort("`dt` must be a finite positive scalar.")
   }
 
-  filter <- kalman_filter(model, y)
-  smoother <- rts_smoother(filter)
-  info <- .causal_information_series(filter, smoother)
+  if (is_regime) {
+    filter <- mixture_filter(model, y, transition = transition,
+                             init_prob = init_prob)
+    smoother <- mixture_smoother(model, y, transition = transition,
+                                 init_prob = init_prob)
+    info <- vapply(
+      seq_len(nrow(filter@state_mean)),
+      function(t) {
+        .gaussian_relative_entropy(
+          smoother@smoothed_mean[t, ], smoother@smoothed_cov[[t]],
+          filter@state_mean[t, ], filter@state_cov[[t]]
+        )
+      },
+      numeric(1L)
+    )
+  } else {
+    filter <- kalman_filter(model, y)
+    smoother <- rts_smoother(filter)
+    info <- .causal_information_series(filter, smoother)
+  }
 
   rate <- NA_real_
   lead <- NA_real_
   if (isTRUE(lead_time)) {
     rate <- causal_information_rate(
       model, y,
-      dt = dt, eval_points = eval_points, max_lag = max_lag
+      dt = dt, eval_points = eval_points, max_lag = max_lag,
+      transition = transition, init_prob = init_prob
     )
     lead <- rate
   }

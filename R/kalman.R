@@ -164,10 +164,12 @@ kalman_filter <- function(model, y) {
     b <- .at_step(model@observation, t)
     q <- .at_step(model@state_cov, t)
     r <- .at_step(model@obs_cov, t)
+    ci <- .at_step(model@state_intercept, t)
+    di <- .at_step(model@obs_intercept, t)
 
     # Predict ----------------------------------------------------------------
 
-    x_pred <- as.numeric(a %*% x)
+    x_pred <- as.numeric(a %*% x) + ci
     p_pred <- a %*% p %*% t(a) + q
     predicted_mean[t, ] <- x_pred
     predicted_cov[[t]] <- p_pred
@@ -184,14 +186,14 @@ kalman_filter <- function(model, y) {
       e <- rep(NA_real_, d)
       s <- b %*% p_pred %*% t(b) + r
     } else if (is_t) {
-      e <- y[t, ] - as.numeric(b %*% x_pred)
+      e <- y[t, ] - as.numeric(b %*% x_pred) - di
       upd <- .kalman_update_t(x_pred, p_pred, b, r, e, nu)
       x <- upd$x
       p <- upd$p
       s <- upd$s
       log_lik <- log_lik + upd$loglik
     } else {
-      e <- y[t, ] - as.numeric(b %*% x_pred)
+      e <- y[t, ] - as.numeric(b %*% x_pred) - di
       s <- b %*% p_pred %*% t(b) + r
       s_chol <- .safe_chol(s, "innovation covariance")
       s_inv <- chol2inv(s_chol)

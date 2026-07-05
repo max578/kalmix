@@ -11,7 +11,9 @@ causal_information_rate(
   eval_points = NULL,
   max_lag = NULL,
   n_lag = 12L,
-  engine = c("online", "expanding")
+  engine = c("online", "expanding"),
+  transition = NULL,
+  init_prob = NULL
 )
 }
 \arguments{
@@ -37,7 +39,13 @@ profile is evaluated at, including zero. Defaults to \code{12}.}
 fixed-point smoother recursion that avoids re-smoothing and handles
 time-varying models; \code{"expanding"} reruns the smoother on each truncated
 series and requires a time-invariant model. The two agree to numerical
-precision and cross-check each other.}
+precision and cross-check each other. A regime-switching model always
+uses the expanding construction (the online recursion is
+linear-Gaussian only) and \code{engine} is ignored.}
+
+\item{transition, init_prob}{The regime-transition matrix and initial
+regime distribution when \code{model} is a list of regimes; passed to
+\code{\link[=mixture_filter]{mixture_filter()}} and \code{\link[=mixture_smoother]{mixture_smoother()}}. Ignored for an \link{ssm}.}
 }
 \value{
 Numeric scalar -- the objective causal information rate (a lead-time

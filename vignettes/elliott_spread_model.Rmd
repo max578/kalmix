@@ -1,0 +1,187 @@
+---
+title: "The Elliott-van der Hoek-Malcolm spread model with kalmix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The Elliott-van der Hoek-Malcolm spread model with kalmix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4)
+set.seed(2005)
+library(kalmix)
+```
+
+Elliott, van der Hoek and Malcolm (2005) model a pairs-trading spread as a
+mean-reverting Gaussian state observed in noise, and they are explicit that
+the observation noise matters: the spread the trader sees is not the spread
+that mean-reverts. This vignette reproduces their model with the general
+`kalmix` machinery and demonstrates the point the state-space treatment
+exists to make. Estimating the dynamics directly from the noisy spread by
+ordinary least squares misprices the trade, while the filter-based
+estimation recovers the true dynamics.
+
+## The 2005 model
+
+The paper's state process (its eq. 1, rewritten as its eq. 7) is a Gaussian
+AR(1) with an intercept,
+
+$$x_{k+1} = A + B\,x_k + C\,\varepsilon_{k+1},
+  \qquad \varepsilon_k \sim N(0, 1),$$
+
+with $A = a\tau \ge 0$, $0 < B = 1 - b\tau < 1$ and $C = \sigma\sqrt{\tau}$,
+mean-reverting to $\mu = a/b$. The trader observes the spread in Gaussian
+noise (eq. 9),
+
+$$y_k = x_k + D\,\omega_k, \qquad \omega_k \sim N(0, 1),$$
+
+and the object of interest is the filter $\hat{x}_k = E[x_k \mid
+y_0, \ldots, y_k]$ (eq. 10), which requires estimates of $(A, B, C, D)$.
+
+With the state intercept of `ssm()` this is a four-number model
+specification. The stationary moments seed the prior:
+
+```{r model}
+A <- 0.06
+B <- 0.85
+C <- 0.30
+D <- 0.45
+mu <- A / (1 - B)
+var_x <- C^2 / (1 - B^2)
+
+spread_2005 <- ssm(
+  transition = B, observation = 1,
+  state_cov = C^2, obs_cov = D^2,
+  state_intercept = A,
+  init_state = mu, init_cov = var_x
+)
+spread_2005
+```
+
+Simulating from the paper's equations gives a series where the true hidden
+spread is known, so every later claim can be checked against the truth:
+
+```{r simulate}
+n <- 600
+x <- numeric(n)
+x[1] <- mu
+for (k in 2:n) {
+  x[k] <- A + B * x[k - 1] + C * rnorm(1)
+}
+y <- x + D * rnorm(n)
+
+plot(y, type = "p", cex = 0.4, col = "grey50",
+     xlab = "k", ylab = "spread",
+     main = "Observed spread (points) and hidden state (line)")
+lines(x, col = "firebrick")
+```
+
+## Why least squares on the observed spread misprices the trade
+
+Fitting the AR(1) directly to the noisy observations treats $y_k$ as if it
+were $x_k$. Measurement error attenuates the estimated autoregression
+toward zero, so the fitted mean-reversion looks faster than it is and the
+implied half-life comes out too short: the naive trader expects the spread
+to revert sooner than it does.
+
+```{r naive}
+naive <- ou_fit(y)
+half_life(naive)
+
+## The true half-life implied by B.
+log(2) / -log(B)
+```
+
+## Estimating the model through the filter
+
+`ssm_fit()` maximises the prediction-error likelihood of the state-space
+form, which separates the state noise $C$ from the observation noise $D$
+instead of lumping them. A two-step estimator handles the intercept: the
+sample mean estimates $\mu$ (the observation mean equals the state mean),
+and $\hat{A} = \hat{\mu}(1 - \hat{B})$ recovers the intercept from the
+fitted transition.
+
+```{r fit}
+mu_hat <- mean(y)
+template <- ssm(
+  transition = 0.5, observation = 1, state_cov = 1, obs_cov = 1,
+  init_state = 0, init_cov = var(y)
+)
+fit <- ssm_fit(template, y - mu_hat, transition = TRUE, n_start = 2L)
+
+B_hat <- fit@estimates$transition[1, 1]
+C_hat <- sqrt(fit@estimates$state_cov[1, 1])
+D_hat <- sqrt(fit@estimates$obs_cov[1, 1])
+A_hat <- mu_hat * (1 - B_hat)
+
+round(rbind(
+  truth     = c(A = A, B = B, C = C, D = D),
+  estimated = c(A_hat, B_hat, C_hat, D_hat)
+), 3)
+
+## The state-space half-life against the naive one.
+c(state_space = log(2) / -log(B_hat), naive = unname(half_life(naive)))
+```
+
+The filter-based estimate recovers the slow true dynamics where the naive
+fit reports a half-life that is too short. In trading terms the naive fit
+would enter and unwind too eagerly, and the paper's framework exists
+precisely to avoid that.
+
+## The filter and the trading rule
+
+The paper's trading rule (its eqs. 15 to 17) works on the
+Ornstein-Uhlenbeck form with $\rho = b = (1 - B)/\tau$ and
+$\mu = a/b$: enter a pair trade when the observed spread leaves the band
+$\mu \pm c\,\sigma/\sqrt{2\rho}$ and unwind when the state is expected back
+at $\mu$. The filtered state is the quantity those decisions condition on:
+
+```{r filter}
+fitted_model <- ssm(
+  transition = B_hat, observation = 1,
+  state_cov = C_hat^2, obs_cov = D_hat^2,
+  state_intercept = A_hat,
+  init_state = mu_hat, init_cov = C_hat^2 / (1 - B_hat^2)
+)
+kf <- kalman_filter(fitted_model, y)
+
+tau <- 1
+rho <- (1 - B_hat) / tau
+sigma <- C_hat / sqrt(tau)
+band <- 1 * sigma / sqrt(2 * rho)
+
+plot(y, type = "p", cex = 0.4, col = "grey50",
+     xlab = "k", ylab = "spread",
+     main = "Filtered spread with the entry band")
+lines(kf@filtered_mean[, 1], col = "steelblue")
+abline(h = mu_hat + c(-band, 0, band), lty = c(2, 1, 2))
+```
+
+The filtered path (blue) strips the observation noise the naive approach
+mistakes for mean-reversion, and the band marks the entry threshold at
+$c = 1$ standard deviations of the stationary state.
+
+## The single-regime base case of the regime filter
+
+`kalmix_filter()` generalises this model to volatility regimes; with
+`n_regimes = 1` it reduces to exactly the 2005 filter, which makes the
+paper's model the base case of the package's regime machinery:
+
+```{r base-case}
+model <- ou_fit(y)
+one_regime <- kalmix_filter(model, y, n_regimes = 1L)
+class(one_regime)
+```
+
+The adequacy battery of `innovation_diagnostics()` then certifies the
+fitted specification the same way it certifies every state-space model in
+the package, and the assimilative-causal-inference read-out of `aci()`
+applies unchanged. The spread model that founded the package is one
+`ssm()` call within it.
+
+## References
+
+Elliott, R. J., van der Hoek, J. and Malcolm, W. P. (2005). Pairs trading.
+*Quantitative Finance*, 5(3), 271--276. doi:10.1080/14697680500149370.

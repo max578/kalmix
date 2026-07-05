@@ -76,6 +76,42 @@
   list(promote(x))
 }
 
+#' Normalise an intercept argument to a list of numeric vectors
+#'
+#' Accepts a scalar (recycled to length `len`), a length-`len` vector, or a
+#' list of such (time-varying). Mirrors [.as_matrix_list()] for the additive
+#' intercept terms, which are vectors rather than matrices.
+#'
+#' @param x A scalar, a numeric vector, or a list of numeric vectors.
+#' @param len Integer scalar — the required vector length.
+#' @param arg Character scalar — the argument name, for error messages.
+#'
+#' @returns A list of numeric vectors of length `len`.
+#' @noRd
+#' @keywords internal
+.as_vector_list <- function(x, len, arg) {
+  promote <- function(el) {
+    if (!is.numeric(el)) {
+      cli::cli_abort("`{arg}` entries must be numeric.")
+    }
+    el <- as.numeric(el)
+    if (length(el) == 1L) {
+      el <- rep(el, len)
+    }
+    if (length(el) != len) {
+      cli::cli_abort("`{arg}` entries must be scalars or length-{len} vectors.")
+    }
+    el
+  }
+  if (is.list(x)) {
+    if (length(x) == 0L) {
+      cli::cli_abort("`{arg}` must not be an empty list.")
+    }
+    return(lapply(x, promote))
+  }
+  list(promote(x))
+}
+
 #' Validate the assembled properties of an ssm object
 #'
 #' Cross-checks that the state and observation dimensions implied by the system
@@ -125,6 +161,19 @@
   for (r in self@obs_cov) {
     if (nrow(r) != d || ncol(r) != d) {
       return(sprintf("each `obs_cov` matrix must be %d by %d", d, d))
+    }
+  }
+
+  # Intercepts are length-m (state) and length-d (observation) vectors --------
+
+  for (ci in self@state_intercept) {
+    if (length(ci) != m || !all(is.finite(ci))) {
+      return(sprintf("each `state_intercept` must be a finite length-%d vector", m))
+    }
+  }
+  for (di in self@obs_intercept) {
+    if (length(di) != d || !all(is.finite(di))) {
+      return(sprintf("each `obs_intercept` must be a finite length-%d vector", d))
     }
   }
 
@@ -204,12 +253,13 @@
     }
   }
   n <- nrow(y)
-  for (nm in c("transition", "observation", "state_cov", "obs_cov")) {
+  for (nm in c("transition", "observation", "state_cov", "obs_cov",
+               "state_intercept", "obs_intercept")) {
     lst <- S7::prop(model, nm)
     if (length(lst) != 1L && length(lst) != n) {
       cli::cli_abort(c(
-        "Time-varying `{nm}` has {length(lst)} matrices but there are {n} observations.",
-        "i" = "A time-varying component needs one matrix per observation."
+        "Time-varying `{nm}` has {length(lst)} entries but there are {n} observations.",
+        "i" = "A time-varying component needs one entry per observation."
       ))
     }
   }

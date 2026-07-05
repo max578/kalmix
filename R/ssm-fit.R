@@ -294,6 +294,8 @@ S7::method(print, ssm_mle) <- function(x, ...) {
     observation = model@observation[[1L]],
     state_cov = model@state_cov[[1L]],
     obs_cov = model@obs_cov[[1L]],
+    state_intercept = model@state_intercept[[1L]],
+    obs_intercept = model@obs_intercept[[1L]],
     init_state = model@init_state,
     init_cov = model@init_cov,
     obs_family = model@obs_family,
@@ -301,7 +303,8 @@ S7::method(print, ssm_mle) <- function(x, ...) {
   )
   # A time-varying non-estimated component is carried through as the list it
   # already is; only time-invariant components can be estimated.
-  for (nm in c("transition", "observation", "state_cov", "obs_cov")) {
+  for (nm in c("transition", "observation", "state_cov", "obs_cov",
+               "state_intercept", "obs_intercept")) {
     lst <- S7::prop(model, nm)
     if (length(lst) != 1L) {
       args[[nm]] <- lst

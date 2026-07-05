@@ -65,6 +65,7 @@ Collate:
     'ssm-fit.R'
     'mixture-internal.R'
     'mixture.R'
+    'mixture-smoother.R'
     'hmm-internal.R'
     'hmm.R'
     'changepoint.R'

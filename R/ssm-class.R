@@ -19,10 +19,15 @@
 #'
 #' An S7 object specifying a discrete-time linear-Gaussian state-space model,
 #' built by the constructor of the same name. The latent state of dimension
-#' `m` evolves through a transition matrix and Gaussian process noise, and is
-#' observed through an observation matrix and Gaussian observation noise:
-#' \deqn{x_t = A_t\, x_{t-1} + w_t, \qquad w_t \sim N(0, Q_t),}
-#' \deqn{y_t = B_t\, x_t + v_t, \qquad v_t \sim N(0, R_t).}
+#' `m` evolves through a transition matrix, an optional intercept (control
+#' input) and Gaussian process noise, and is observed through an observation
+#' matrix, an optional observation intercept and Gaussian observation noise:
+#' \deqn{x_t = A_t\, x_{t-1} + c_t + w_t, \qquad w_t \sim N(0, Q_t),}
+#' \deqn{y_t = B_t\, x_t + d_t + v_t, \qquad v_t \sim N(0, R_t).}
+#' The intercepts default to zero, recovering the intercept-free form; a
+#' non-zero \eqn{c_t} is the standard way to give a stationary state a
+#' non-zero long-run mean (for an AR(1) state with coefficient \eqn{\phi} and
+#' mean \eqn{\theta}, set \eqn{c = \theta(1 - \phi)}).
 #'
 #' Each of `transition`, `observation`, `state_cov` and `obs_cov` is accepted
 #' as a single matrix (static, reused at every step) or as a list of matrices,
@@ -44,6 +49,11 @@
 #'   positive semi-definite), or a list of such matrices.
 #' @param obs_cov The observation-noise covariance \eqn{R} (`d` by `d`,
 #'   symmetric positive definite), or a list of such matrices.
+#' @param state_intercept The state intercept \eqn{c} (a scalar or length-`m`
+#'   vector, or a list of such for a time-varying control input). Defaults to
+#'   `0`.
+#' @param obs_intercept The observation intercept \eqn{d} (a scalar or
+#'   length-`d` vector, or a list of such). Defaults to `0`.
 #' @param init_state The prior mean of the initial state \eqn{x_0}, a numeric
 #'   vector of length `m`.
 #' @param init_cov The prior covariance of the initial state, an `m` by `m`
@@ -95,6 +105,8 @@ ssm <- S7::new_class(
     observation = S7::class_list,
     state_cov = S7::class_list,
     obs_cov = S7::class_list,
+    state_intercept = S7::class_list,
+    obs_intercept = S7::class_list,
     init_state = S7::class_double,
     init_cov = S7::class_double,
     obs_family = S7::new_property(S7::class_character, default = "gaussian"),
@@ -114,6 +126,8 @@ ssm <- S7::new_class(
                          obs_cov,
                          init_state,
                          init_cov,
+                         state_intercept = 0,
+                         obs_intercept = 0,
                          obs_family = c("gaussian", "student_t"),
                          obs_df = Inf) {
     obs_family <- match.arg(obs_family)
@@ -124,13 +138,17 @@ ssm <- S7::new_class(
     }
     init_cov <- .as_square_matrix(init_cov, m, "init_cov")
     obs_df <- if (identical(obs_family, "gaussian")) Inf else as.numeric(obs_df)
+    observation <- .as_matrix_list(observation, "observation")
+    d <- nrow(observation[[1L]])
 
     S7::new_object(
       S7::S7_object(),
       transition = .as_matrix_list(transition, "transition"),
-      observation = .as_matrix_list(observation, "observation"),
+      observation = observation,
       state_cov = .as_matrix_list(state_cov, "state_cov"),
       obs_cov = .as_matrix_list(obs_cov, "obs_cov"),
+      state_intercept = .as_vector_list(state_intercept, m, "state_intercept"),
+      obs_intercept = .as_vector_list(obs_intercept, d, "obs_intercept"),
       init_state = init_state,
       init_cov = init_cov,
       obs_family = obs_family,

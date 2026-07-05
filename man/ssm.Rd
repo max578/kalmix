@@ -11,6 +11,8 @@ ssm(
   obs_cov,
   init_state,
   init_cov,
+  state_intercept = 0,
+  obs_intercept = 0,
   obs_family = c("gaussian", "student_t"),
   obs_df = Inf
 )
@@ -34,6 +36,13 @@ vector of length \code{m}.}
 \item{init_cov}{The prior covariance of the initial state, an \code{m} by \code{m}
 symmetric positive semi-definite matrix.}
 
+\item{state_intercept}{The state intercept \eqn{c} (a scalar or length-\code{m}
+vector, or a list of such for a time-varying control input). Defaults to
+\code{0}.}
+
+\item{obs_intercept}{The observation intercept \eqn{d} (a scalar or
+length-\code{d} vector, or a list of such). Defaults to \code{0}.}
+
 \item{obs_family}{The observation-noise family, \code{"gaussian"} (the default) or
 \code{"student_t"}. A Student-t family gives a heavy-tailed observation model
 whose filter is robust to outliers; \code{obs_cov} is then the t \emph{scale} matrix
@@ -51,10 +60,15 @@ An S7 object of class \code{ssm}.
 \description{
 An S7 object specifying a discrete-time linear-Gaussian state-space model,
 built by the constructor of the same name. The latent state of dimension
-\code{m} evolves through a transition matrix and Gaussian process noise, and is
-observed through an observation matrix and Gaussian observation noise:
-\deqn{x_t = A_t\, x_{t-1} + w_t, \qquad w_t \sim N(0, Q_t),}
-\deqn{y_t = B_t\, x_t + v_t, \qquad v_t \sim N(0, R_t).}
+\code{m} evolves through a transition matrix, an optional intercept (control
+input) and Gaussian process noise, and is observed through an observation
+matrix, an optional observation intercept and Gaussian observation noise:
+\deqn{x_t = A_t\, x_{t-1} + c_t + w_t, \qquad w_t \sim N(0, Q_t),}
+\deqn{y_t = B_t\, x_t + d_t + v_t, \qquad v_t \sim N(0, R_t).}
+The intercepts default to zero, recovering the intercept-free form; a
+non-zero \eqn{c_t} is the standard way to give a stationary state a
+non-zero long-run mean (for an AR(1) state with coefficient \eqn{\phi} and
+mean \eqn{\theta}, set \eqn{c = \theta(1 - \phi)}).
 }
 \details{
 Each of \code{transition}, \code{observation}, \code{state_cov} and \code{obs_cov} is accepted
@@ -103,7 +117,9 @@ Other state-space:
 \code{\link{kalman_filter}()},
 \code{\link{kalman_fit}()},
 \code{\link{mixture_filter}()},
+\code{\link{mixture_smoother}()},
 \code{\link{regime_fit}()},
+\code{\link{regime_smooth}()},
 \code{\link{rts_fit}()},
 \code{\link{rts_smoother}()},
 \code{\link{ssm_fit}()},

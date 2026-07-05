@@ -10,8 +10,8 @@ aci_fit(
   causal_information_rate = NA_real_,
   lead_time = NA_real_,
   dt = 1,
-  filter = kalman_fit(),
-  smoother = rts_fit(),
+  filter = NULL,
+  smoother = NULL,
   grounding = "[unverified]",
   grounding_reason = NA_character_,
   adequacy = NULL
@@ -36,9 +36,11 @@ causal information rate in time units, or \code{NA_real_} if not requested.}
 \item{dt}{Numeric scalar -- the sampling interval the lead-time is expressed
 in. Defaults to \code{1}, so the lead-time is in steps.}
 
-\item{filter}{The \link{kalman_fit} the read-out was computed from.}
+\item{filter}{The forward pass the read-out was computed from: a
+\link{kalman_fit}, or a \link{regime_fit} for a regime-switching model.}
 
-\item{smoother}{The \link{rts_fit} the read-out was computed from.}
+\item{smoother}{The smoothing pass: an \link{rts_fit}, or a \link{regime_smooth}
+for a regime-switching model.}
 
 \item{grounding}{Character scalar -- the grounding token of the causal
 verdict, \code{"grounded"} or \code{"[unverified]"}; see the token definitions in
