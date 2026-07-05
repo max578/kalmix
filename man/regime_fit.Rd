@@ -50,6 +50,8 @@ Other state-space:
 \code{\link{mixture_filter}()},
 \code{\link{rts_fit}()},
 \code{\link{rts_smoother}()},
-\code{\link{ssm}()}
+\code{\link{ssm}()},
+\code{\link{ssm_fit}()},
+\code{\link{ssm_mle}()}
 }
 \concept{state-space}
