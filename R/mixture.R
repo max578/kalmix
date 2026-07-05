@@ -31,6 +31,11 @@
 #'   regime weights (`NA` at a missing observation).
 #' @param innovation_cov A list of `n` collapsed one-step predictive
 #'   covariances matching `innovation`.
+#' @param innovation_pit For a univariate series, the length-`n`
+#'   probability-integral transform of each observation under its one-step
+#'   mixture predictive (`NA` at a missing observation; empty for `d > 1`).
+#'   This is the exact reference for the adequacy diagnostics, where the
+#'   collapsed Gaussian would wrongly fail a well-specified mixture.
 #' @param log_lik Numeric scalar — the mixture model log-likelihood.
 #' @param n_regimes Integer scalar — the number of regimes `k`.
 #'
@@ -46,6 +51,7 @@ regime_fit <- S7::new_class(
     state_cov = S7::class_list,
     innovation = S7::class_double,
     innovation_cov = S7::class_list,
+    innovation_pit = S7::new_property(S7::class_double, default = numeric(0L)),
     log_lik = S7::class_double,
     n_regimes = S7::class_integer
   ),
@@ -144,6 +150,7 @@ mixture_filter <- function(models,
   state_cov <- vector("list", n)
   innovation <- matrix(0, nrow = n, ncol = d)
   innovation_cov <- vector("list", n)
+  innovation_pit <- if (d == 1L) rep(NA_real_, n) else numeric(0L)
   log_lik <- 0
 
   # Shared mixed prior, common to all regimes at entry to each step ----------
@@ -221,6 +228,16 @@ mixture_filter <- function(models,
     }, prior, yhats, preds))
     innovation[t, ] <- if (missing_t) rep(NA_real_, d) else y[t, ] - y_mix
     innovation_cov[[t]] <- .symmetrise(s_mix)
+    if (d == 1L && !missing_t) {
+      # Exact one-step probability integral transform under the mixture
+      # predictive: uniform when the regime model is correctly specified,
+      # the reference the adequacy diagnostics test against.
+      innovation_pit[t] <- sum(vapply(seq_len(k), function(j) {
+        prior[j] * stats::pnorm(
+          y[t, 1L], mean = yhats[[j]][1L], sd = sqrt(preds[[j]][1L, 1L])
+        )
+      }, numeric(1L)))
+    }
 
     regime_prob[t, ] <- prob
     state_mean[t, ] <- x_mix
@@ -233,6 +250,7 @@ mixture_filter <- function(models,
     state_cov = state_cov,
     innovation = innovation,
     innovation_cov = innovation_cov,
+    innovation_pit = innovation_pit,
     log_lik = log_lik,
     n_regimes = as.integer(k)
   )

@@ -266,12 +266,21 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
     cli::cli_abort("`lags` must be a positive integer scalar.")
   }
 
-  # A regime fit carries no single observation model; its collapsed mixture
-  # predictive is Gaussian by construction (the GPB1 collapse).
+  # A regime fit carries no single observation model. For a univariate series
+  # its exact one-step reference is the mixture predictive, read through the
+  # stored probability integral transform: standardising by the collapsed
+  # Gaussian would wrongly fail a well-specified mixture, whose innovations
+  # are heavy-tailed relative to a single Gaussian by construction.
   is_t <- is_kalman &&
     identical(object@model@obs_family, "student_t") &&
     is.finite(object@model@obs_df)
   family <- if (is_t) "student_t" else "gaussian"
+  pit <- NULL
+  if (!is_kalman && d == 1L &&
+      length(object@innovation_pit) == nrow(w_full)) {
+    pit <- object@innovation_pit[stats::complete.cases(w_full)]
+    family <- "gaussian_mixture"
+  }
 
   # Too short to judge: fail closed to an indeterminate verdict rather than
   # assert adequacy the data cannot support.
@@ -283,16 +292,39 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
     ))
   }
 
-  # Whiteness: a Ljung-Box test per observation dimension, Bonferroni-combined.
-  # Serial correlation is family-agnostic, so this test is unchanged for both.
-  white_each <- vapply(
-    seq_len(d),
-    function(j) stats::Box.test(w[, j], lag = lags, type = "Ljung-Box")$p.value,
-    numeric(1L)
-  )
-  p_white <- min(min(white_each) * d, 1)
+  # Whiteness: a Ljung-Box test per observation dimension, Bonferroni-combined
+  # (for a mixture fit, on the inverse-normal PIT, whose serial correlation
+  # mirrors the innovations').
+  clamp01 <- function(u) {
+    pmin(pmax(u, .Machine$double.eps), 1 - .Machine$double.eps)
+  }
+  g <- if (is.null(pit)) NULL else stats::qnorm(clamp01(pit))
+  if (is.null(pit)) {
+    white_each <- vapply(
+      seq_len(d),
+      function(j) {
+        stats::Box.test(w[, j], lag = lags, type = "Ljung-Box")$p.value
+      },
+      numeric(1L)
+    )
+    p_white <- min(min(white_each) * d, 1)
+  } else {
+    p_white <- stats::Box.test(g, lag = lags, type = "Ljung-Box")$p.value
+  }
 
-  if (is_t) {
+  if (!is.null(pit)) {
+    # Mixture family: the PIT is uniform under correct specification, so a
+    # shifted mean signals a mis-stated scale and non-normality of the
+    # inverse-normal PIT signals the wrong predictive shape.
+    sd_u <- stats::sd(pit)
+    p_cal <- if (is.finite(sd_u) && sd_u > 0) {
+      tstat <- (mean(pit) - 0.5) / (sd_u / sqrt(n))
+      2 * stats::pt(-abs(tstat), df = n - 1L)
+    } else {
+      NA_real_
+    }
+    p_norm <- .jarque_bera_p(g)
+  } else if (is_t) {
     # Student-t family: the standardised innovations are t-, not Gaussian-,
     # distributed, so the scale and family-fit tests read off the t-PIT.
     tt <- .t_scale_family_tests(w, object@model@obs_df)

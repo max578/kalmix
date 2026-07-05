@@ -195,6 +195,12 @@ aci_fit <- S7::new_class(
 #' lead-time inherit the variational approximation; the Gaussian family
 #' involves no approximation.
 #'
+#' A regime-switching fit is not accepted here: the read-out needs a smoother
+#' pass, and a regime (GPB1) smoother is not yet implemented. A regime model
+#' can still be *certified* directly by passing its [regime_fit] to
+#' [innovation_diagnostics()], which tests the collapsed one-step
+#' innovations.
+#'
 #' The recovered state is interpretable as a cause of the observed series only
 #' under the maintained assumption that the [ssm] is the data-generating
 #' mechanism. That assumption is not taken on trust: the read-out is grounded
