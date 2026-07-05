@@ -42,6 +42,18 @@
 
 ## Bug fixes
 
+* **`its_causal()` average-effect intervals were understated.** The augmented
+  running-sum covariance recursion dropped the off-diagonal block of its
+  process-noise covariance, losing the correlation between the state noise and
+  the running sum it also drives. Average-effect intervals now widen slightly
+  (the local-level null case understated the summed-counterfactual variance by
+  about 4 per cent), so a borderline effect near an interval endpoint can
+  change verdict. Point estimates, pointwise counterfactual intervals and the
+  cumulative-effect path are unchanged. The recursion is now pinned to a
+  direct Monte-Carlo simulation oracle in the test suite, and the null
+  coverage test tightened from a one-sided floor to a two-sided band around
+  the nominal 95 per cent.
+
 * The NOAA Oceanic Nino Index external-oracle test now skips cleanly when the
   `curl` package is absent, so `R CMD check` is clean on hosts without it
   (the offline guard previously errored rather than skipping).
