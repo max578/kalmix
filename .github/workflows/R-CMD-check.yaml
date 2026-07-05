@@ -39,7 +39,7 @@ jobs:
       # CRAN and this runner has no access to it, so it is dropped from
       # Suggests before dependency resolution; the affected tests skip.
       - name: Drop the private kernR test oracle from Suggests
-        run: perl -0pi -e 's/^\s*kernR,\n//m' DESCRIPTION
+        run: perl -0pi -e 's/^[ \t]*kernR,\r?\n//m' DESCRIPTION
         shell: bash
 
       - uses: r-lib/actions/setup-pandoc@v2
