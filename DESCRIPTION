@@ -1,7 +1,7 @@
 Package: kalmix
 Type: Package
 Title: General State-Space Modelling, Filtering and Change-Point Detection
-Version: 0.2.0.9000
+Version: 0.3.0
 Authors@R: c(
     person(given = "Max",
            family = "Moldovan",
@@ -71,6 +71,7 @@ Collate:
     'adequacy.R'
     'student-t.R'
     'aci.R'
+    'cir.R'
     'kalmix-classes.R'
     'spread.R'
     'filter.R'

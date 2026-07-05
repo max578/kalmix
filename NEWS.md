@@ -1,4 +1,4 @@
-# kalmix (development version)
+# kalmix 0.3.0 (2026-07-05)
 
 ## Breaking changes
 
