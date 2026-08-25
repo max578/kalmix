@@ -112,10 +112,17 @@ under the maintained assumption that the \link{ssm} is the data-generating
 mechanism. That assumption is not taken on trust: the read-out is grounded
 through \code{\link[=innovation_diagnostics]{innovation_diagnostics()}}, and a model whose standardised
 innovations are not white, not correctly scaled, or not Gaussian is declared
-inadequate, so the verdict abstains with a \verb{[unverified]} grounding token.
-Passing the diagnostics establishes self-consistency only; the verdict is
-labelled \code{"grounded"} solely when an adequate model is accompanied by
-declared, dated \code{mechanism} provenance, and is \code{"[unverified]"} otherwise.
+inadequate, so the verdict abstains with a \verb{[unverified]} grounding token
+and the returned \link{aci_fit} additionally carries the
+\code{c("orchestra_refusal", "kalmix_abstention")} classes (as does a fit whose
+adequacy could not be judged at all, or whose lead-time is censored or
+unconverged -- see \code{censored}/the quadrature convergence check), so a
+cross-member caller can recognise the read-out as unreliable without
+parsing the grounding string. Passing the diagnostics establishes
+self-consistency only; the verdict is labelled \code{"grounded"} solely when an
+adequate model is accompanied by declared, dated \code{mechanism} provenance,
+and is \code{"[unverified]"} otherwise -- that ordinary, expected case is not
+itself abstained on.
 }
 \examples{
 ## A latent oscillation seen through a slow, noisy observation channel: the

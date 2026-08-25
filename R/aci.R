@@ -227,10 +227,17 @@ aci_fit <- S7::new_class(
 #' mechanism. That assumption is not taken on trust: the read-out is grounded
 #' through [innovation_diagnostics()], and a model whose standardised
 #' innovations are not white, not correctly scaled, or not Gaussian is declared
-#' inadequate, so the verdict abstains with a `[unverified]` grounding token.
-#' Passing the diagnostics establishes self-consistency only; the verdict is
-#' labelled `"grounded"` solely when an adequate model is accompanied by
-#' declared, dated `mechanism` provenance, and is `"[unverified]"` otherwise.
+#' inadequate, so the verdict abstains with a `[unverified]` grounding token
+#' and the returned [aci_fit] additionally carries the
+#' `c("orchestra_refusal", "kalmix_abstention")` classes (as does a fit whose
+#' adequacy could not be judged at all, or whose lead-time is censored or
+#' unconverged -- see `censored`/the quadrature convergence check), so a
+#' cross-member caller can recognise the read-out as unreliable without
+#' parsing the grounding string. Passing the diagnostics establishes
+#' self-consistency only; the verdict is labelled `"grounded"` solely when an
+#' adequate model is accompanied by declared, dated `mechanism` provenance,
+#' and is `"[unverified]"` otherwise -- that ordinary, expected case is not
+#' itself abstained on.
 #'
 #' @param model An [ssm], or a list of two or more [ssm] regimes for a
 #'   regime-switching read-out.
@@ -396,12 +403,19 @@ aci <- function(model,
     censored = censored,
     monotone = monotone
   )
-  # A typed abstention: the lead-time carried by this fit is not one the
-  # federation's refusal contract (ORCHESTRA_dev/integration/refusal_contract.R)
-  # should treat as a trustworthy number, whatever `grounding` reads on this
-  # call -- it rides on the same censored/converged flags rather than on the
-  # mechanism-provenance question `grounding` otherwise answers.
-  if (lead_time_unreliable) {
+  # A typed abstention: the read-out is not one the federation's refusal
+  # contract (ORCHESTRA_dev/integration/refusal_contract.R) should treat as a
+  # trustworthy result, on either of two independent grounds -- the model
+  # itself failed (or could not be assessed against) the innovation-adequacy
+  # diagnostics, or an otherwise-adequate model's lead-time rides on a
+  # censored/unconverged quadrature. `adequacy_failing` covers
+  # `adequate == FALSE` (`"model_inadequate"`) and `adequate == NA`
+  # (`"insufficient_data"`) alike -- both are the model itself, not the
+  # separate mechanism-provenance question `grounding` otherwise answers, so
+  # neither is conflated with the ordinary, expected `"mechanism_unverified"`
+  # case that every un-grounded-but-adequate fit already carries.
+  adequacy_failing <- !isTRUE(adequacy@adequate)
+  if (adequacy_failing || lead_time_unreliable) {
     class(out) <- c("orchestra_refusal", "kalmix_abstention", class(out))
   }
   out
