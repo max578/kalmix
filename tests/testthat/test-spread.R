@@ -29,6 +29,21 @@ test_that("ou_fit() refuses a series inconsistent with Ornstein-Uhlenbeck", {
   expect_error(ou_fit(anti), "Ornstein-Uhlenbeck")
 })
 
+test_that("ou_fit()'s refusal carries the orchestra refusal contract classes", {
+  ## KM-D1 (orchestra fitness audit, 2026-08-25): ou_fit() was the one verb of
+  ## thirty that declined with a bare stop()-shaped condition -- an error with
+  ## no class a cross-member caller could recognise as a structured refusal.
+  ## The refusal contract (integration/refusal_contract.R) reads any class
+  ## ending in `_refusal`, or the explicit `orchestra_refusal` marker, as a
+  ## member declining to produce a result at all.
+  anti <- withr::with_seed(7L, as.numeric(stats::arima.sim(list(ar = -0.6), n = 500)))
+  cnd <- tryCatch(ou_fit(anti), error = function(e) e)
+  expect_s3_class(cnd, "error")
+  expect_true(inherits(cnd, "kalmix_refusal"))
+  expect_true(inherits(cnd, "orchestra_refusal"))
+  expect_error(ou_fit(anti), class = "kalmix_refusal")
+})
+
 test_that("ou_fit() carries the hedge ratio through from spread_series()", {
   pair <- .sim_pair(n = 800, beta = 1.5, seed = 4L)
   model <- ou_fit(spread_series(pair$a, pair$b))
