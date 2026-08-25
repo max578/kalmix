@@ -63,6 +63,18 @@
   caught and recognised as a structured refusal by name rather than by
   parsing its message; the refusal itself -- what is refused and when -- is
   unchanged.
+* `aci()` now also carries the `orchestra_refusal` / `kalmix_abstention`
+  classes when the model itself fails the innovation-adequacy diagnostics
+  (`grounding_reason = "model_inadequate"`) or when there is too little data
+  to judge adequacy at all (`"insufficient_data"`) -- previously only a
+  censored or unconverged lead-time was classed, so an inadequate model
+  whose lead-time happened to be reliable (or was not requested,
+  `lead_time = FALSE`) returned an un-classed `aci_fit` carrying only the
+  `"[unverified]"` grounding string. The ordinary, expected
+  `"mechanism_unverified"` case -- an adequate model with no declared
+  provenance -- is unaffected and still carries no abstention class; only
+  the genuine adequacy failures now do. What is refused is unchanged, only
+  how it is signalled.
 
 ## Testing
 

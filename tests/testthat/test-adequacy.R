@@ -76,6 +76,10 @@ test_that("aci() abstains under model inadequacy (the falsifier)", {
   expect_true(isTRUE(matched@adequacy@adequate))
   expect_identical(matched@grounding, "[unverified]")
   expect_identical(matched@grounding_reason, "mechanism_unverified")
+  ## The ordinary, expected case -- adequate but not externally verified --
+  ## is not itself a decline; it must NOT carry the abstention/refusal classes.
+  expect_false(inherits(matched, "kalmix_abstention"))
+  expect_false(inherits(matched, "orchestra_refusal"))
 
   frozen <- ssm(
     transition = 1, observation = 1, state_cov = 1e-6, obs_cov = 1,
@@ -85,6 +89,56 @@ test_that("aci() abstains under model inadequacy (the falsifier)", {
   expect_false(isTRUE(abstained@adequacy@adequate))
   expect_identical(abstained@grounding, "[unverified]")
   expect_identical(abstained@grounding_reason, "model_inadequate")
+})
+
+test_that("a model-inadequate aci_fit carries the orchestra abstention contract classes", {
+  ## Re-implements the two-line ORCHESTRA_dev fleet predicate locally (per the
+  ## closeout brief -- this test must not depend on ORCHESTRA_dev) so the
+  ## assertion below is exactly what the fleet's cross-member gate would run.
+  .is_orchestra_decline <- function(x) {
+    cls <- class(x)
+    any(cls == "orchestra_refusal") || any(grepl("_(refusal|abstention)$", cls))
+  }
+
+  sim <- .sim_enso_osse(n = 600L, kappa = 0.6, seed = 3L)
+  frozen <- ssm(
+    transition = 1, observation = 1, state_cov = 1e-6, obs_cov = 1,
+    init_state = 0, init_cov = 10
+  )
+
+  ## `lead_time = FALSE` isolates the model-adequacy failure from the
+  ## separate censored/unconverged lead-time gate (KM-D1): this fit's
+  ## `censored` is FALSE and its quadrature was never run, so if the class
+  ## were stamped only on `lead_time_unreliable` (the pre-fix condition) it
+  ## would NOT be classed here, even though the model itself was rejected by
+  ## the innovation diagnostics.
+  abstained <- aci(frozen, sim$x, dt = sim$dt, lead_time = FALSE)
+  expect_false(isTRUE(abstained@adequacy@adequate))
+  expect_identical(abstained@grounding_reason, "model_inadequate")
+  expect_false(abstained@censored)
+
+  expect_true(inherits(abstained, "kalmix_abstention"))
+  expect_true(inherits(abstained, "orchestra_refusal"))
+  expect_true(.is_orchestra_decline(abstained))
+})
+
+test_that("an insufficient-data aci_fit also carries the abstention contract classes", {
+  ## `adequate` is NA (not FALSE) when there is too little data to judge --
+  ## a distinct reason from `"model_inadequate"`, and equally not one a
+  ## caller should treat as a usable result.
+  model <- ssm(
+    transition = 1, observation = 1, state_cov = 0.04, obs_cov = 1,
+    init_state = 0, init_cov = 10
+  )
+  short <- withr::with_seed(1L, {
+    level <- cumsum(stats::rnorm(10L, sd = 0.2))
+    level + stats::rnorm(10L)
+  })
+  fit <- aci(model, short, lead_time = FALSE)
+  expect_true(is.na(fit@adequacy@adequate))
+  expect_identical(fit@grounding_reason, "insufficient_data")
+  expect_true(inherits(fit, "kalmix_abstention"))
+  expect_true(inherits(fit, "orchestra_refusal"))
 })
 
 test_that("aci() grounds a verdict only with verified mechanism provenance", {
