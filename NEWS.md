@@ -40,6 +40,16 @@
 * `aci_fit` gains `censored` and `monotone` properties, `print()` marks a
   censored lead-time as a lower bound, and a censored anchor degrades the
   grounding token to `[unverified]` with reason `"censored_horizon"`.
+* `causal_information_rate()` returns a `converged` attribute alongside
+  `censored`: `TRUE`/`FALSE` when the convergence check ran, `NA` when it
+  did not apply (a resolved grid, or `tol = Inf`). `aci()` reads it: a
+  lead-time whose quadrature has not converged now also degrades the
+  grounding token to `[unverified]`, with reason `"not_converged"`, and the
+  returned `aci_fit` carries the `orchestra_refusal` / `kalmix_abstention`
+  classes (the same convention `ou_fit()`'s refusal now uses, below) so a
+  cross-member caller can recognise the lead-time as unreliable without
+  parsing the warning. Previously the convergence check only warned and left
+  the grounding token untouched.
 
 ## Bug fixes
 
@@ -48,6 +58,11 @@
   threshold-averaged and integral forms that holds only for a decreasing
   profile, while defining the subjective range as the *first* lag below the
   tolerance where the source paper takes the *last* lag above it.
+* `ou_fit()`'s refusal on a non-mean-reverting series now carries the
+  `orchestra_refusal` / `kalmix_refusal` condition classes, so it can be
+  caught and recognised as a structured refusal by name rather than by
+  parsing its message; the refusal itself -- what is refused and when -- is
+  unchanged.
 
 ## Testing
 
@@ -60,7 +75,11 @@
   tolerances and the exact range are each graded on the nonlinear dyad
   model. `aciR` joins `Suggests`; the tests skip when it is absent.
 * New quadrature suite (`test-cir-quadrature.R`) grading the lag grid, the
-  convergence warning, the censoring contract and the grounding degradation.
+  convergence warning, the censoring contract and the grounding degradation,
+  and now also the convergence-driven grounding degradation and the
+  `orchestra_refusal`/`kalmix_abstention` classes on an unconverged
+  `aci_fit`. `test-spread.R` grades the `orchestra_refusal`/`kalmix_refusal`
+  classes on `ou_fit()`'s refusal.
 * The check workflow installs `aciR` from GitHub rather than dropping it from
   `Suggests`, so the conformance grade runs in the clean room on all five
   platforms; `kernR` is still dropped, being private. `testthat`'s floor rises

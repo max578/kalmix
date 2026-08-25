@@ -79,7 +79,9 @@ Numeric scalar -- the objective causal influence range (a lead-time
 in the time units set by \code{dt}), \code{0} where no future information is
 recoverable, carrying the attributes \code{censored} (logical),
 \code{censored_fraction} (numeric), \code{monotone} (logical, whether every anchor's
-profile decreases with lag) and \code{n_lag} (the grid size used).
+profile decreases with lag), \code{n_lag} (the grid size used) and \code{converged}
+(logical, whether a thinned grid agreed with this one to within \code{tol};
+\code{NA} when the check does not apply, for example a fully resolved grid).
 }
 \description{
 Computes the objective, threshold-free causal influence range of Andreou,
