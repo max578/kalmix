@@ -119,7 +119,9 @@
 #'   in the time units set by `dt`), `0` where no future information is
 #'   recoverable, carrying the attributes `censored` (logical),
 #'   `censored_fraction` (numeric), `monotone` (logical, whether every anchor's
-#'   profile decreases with lag) and `n_lag` (the grid size used).
+#'   profile decreases with lag), `n_lag` (the grid size used) and `converged`
+#'   (logical, whether a thinned grid agreed with this one to within `tol`;
+#'   `NA` when the check does not apply, for example a fully resolved grid).
 #' @family causal
 #' @seealso [aci()].
 #' @references
@@ -513,13 +515,21 @@ causal_information_rate <- function(model,
   truncated <- vapply(profiles, function(p) !all(p$resolved), logical(1L))
   censored <- censored | truncated
 
+  # `converged` is NA when the check does not apply (a resolved grid has
+  # nothing finer to compare against, or the check is switched off), and
+  # otherwise records whether the thinned-grid quadrature agreed with the
+  # full one to within `tol` -- the same test the warning below is raised
+  # from, so a caller reading the attribute sees exactly what the warning
+  # reported.
   resolved_grid <- n_lag >= as.integer(max_lag) + 1L
+  converged <- NA
   if (is.finite(tol) && n_lag > 3L && !resolved_grid) {
     half <- reduce_all(TRUE)
     coarse <- mean(vapply(half, function(r) r$value, numeric(1L))) * dt
     if (is.finite(coarse) && is.finite(value) && abs(value) > 0) {
       shift <- abs(coarse - value) / abs(value)
-      if (shift > tol) {
+      converged <- shift <= tol
+      if (!converged) {
         cli::cli_warn(c(
           paste(
             "The causal influence range has not converged on this",
@@ -541,7 +551,8 @@ causal_information_rate <- function(model,
     censored = any(censored),
     censored_fraction = mean(censored),
     monotone = all(vapply(full, function(r) isTRUE(r$monotone), logical(1L))),
-    n_lag = n_lag
+    n_lag = n_lag,
+    converged = converged
   )
 }
 

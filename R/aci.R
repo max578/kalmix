@@ -350,6 +350,7 @@ aci <- function(model,
   lead <- NA_real_
   censored <- FALSE
   monotone <- NA
+  converged <- NA
   if (isTRUE(lead_time)) {
     rate <- causal_information_rate(
       model, y,
@@ -360,6 +361,7 @@ aci <- function(model,
     )
     censored <- isTRUE(attr(rate, "censored"))
     monotone <- attr(rate, "monotone")
+    converged <- attr(rate, "converged")
     lead <- as.numeric(rate)
     rate <- as.numeric(rate)
   }
@@ -367,14 +369,20 @@ aci <- function(model,
   adequacy <- innovation_diagnostics(filter, alpha = alpha)
   grounding <- .aci_grounding(adequacy, mechanism)
   # A censored lead-time is a bound taken from a window the record could not
-  # close. The read-out cannot be grounded on it, whatever the diagnostics say.
-  if (censored && identical(grounding$grounding, .grounding_grounded)) {
+  # close, and an unconverged quadrature has not settled on a value: neither
+  # can be grounded, whatever the diagnostics say. Censoring takes the reason
+  # when both hold, since it is the more specific diagnosis (a converged
+  # quadrature over a truncated window is still a bound, not an estimate).
+  lead_time_unreliable <- censored || isFALSE(converged)
+  if (lead_time_unreliable &&
+      identical(grounding$grounding, .grounding_grounded)) {
     grounding <- list(
-      grounding = .grounding_unverified, reason = "censored_horizon"
+      grounding = .grounding_unverified,
+      reason = if (censored) "censored_horizon" else "not_converged"
     )
   }
 
-  aci_fit(
+  out <- aci_fit(
     causal_information = info,
     mean_causal_information = mean(info),
     causal_information_rate = rate,
@@ -388,6 +396,15 @@ aci <- function(model,
     censored = censored,
     monotone = monotone
   )
+  # A typed abstention: the lead-time carried by this fit is not one the
+  # federation's refusal contract (ORCHESTRA_dev/integration/refusal_contract.R)
+  # should treat as a trustworthy number, whatever `grounding` reads on this
+  # call -- it rides on the same censored/converged flags rather than on the
+  # mechanism-provenance question `grounding` otherwise answers.
+  if (lead_time_unreliable) {
+    class(out) <- c("orchestra_refusal", "kalmix_abstention", class(out))
+  }
+  out
 }
 
 # The per-step series ---------------------------------------------------------

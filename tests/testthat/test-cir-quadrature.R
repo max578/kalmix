@@ -103,6 +103,51 @@ test_that("a censored lead-time cannot carry a grounded verdict", {
   expect_output(print(fit), "censored")
 })
 
+test_that("an unconverged lead-time cannot carry a grounded verdict", {
+  ## KM-D1 (orchestra fitness audit, 2026-08-25): the convergence check
+  ## (test above, "a grid too coarse to have converged warns") only warned;
+  ## it never touched aci()'s grounding token, so a caller reading `grounding`
+  ## alone -- rather than parsing warnings -- saw "grounded" on a lead-time
+  ## known not to have converged. This mirrors the censoring degrade already
+  ## in place and rides on the same `converged` attribute wave 2 added to
+  ## causal_information_rate().
+  case <- .cir_quadrature_case()
+  mechanism <- list(
+    verified_on = as.Date("2026-01-01"),
+    source = "the simulated data-generating process"
+  )
+  fit <- suppressWarnings(aci(
+    case$model, case$sim$x, dt = case$sim$dt,
+    max_lag = 120L, n_lag = 12L, mechanism = mechanism
+  ))
+  expect_false(isTRUE(attr(
+    suppressWarnings(causal_information_rate(
+      case$model, case$sim$x, max_lag = 120L, n_lag = 12L
+    )),
+    "converged"
+  )))
+  expect_identical(fit@grounding, "[unverified]")
+  expect_identical(fit@grounding_reason, "not_converged")
+})
+
+test_that("an unconverged aci_fit carries the orchestra abstention contract classes", {
+  case <- .cir_quadrature_case()
+  fit <- suppressWarnings(aci(
+    case$model, case$sim$x, dt = case$sim$dt,
+    max_lag = 120L, n_lag = 12L
+  ))
+  expect_true(inherits(fit, "kalmix_abstention"))
+  expect_true(inherits(fit, "orchestra_refusal"))
+
+  ## A fully resolved grid has nothing to abstain on for this reason: it is
+  ## not stamped with the convergence-abstention class.
+  resolved <- suppressWarnings(aci(
+    case$model, case$sim$x, dt = case$sim$dt,
+    max_lag = 120L, n_lag = 121L
+  ))
+  expect_false(inherits(resolved, "kalmix_abstention"))
+})
+
 test_that("the exact and efficient functionals bracket a non-monotone profile", {
   ## Oracle: the layer-cake identity. Integrating the divergence profile and
   ## integrating its superlevel-set measure over the tolerance give the same

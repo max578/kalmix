@@ -78,10 +78,17 @@ ou_fit <- function(x, dt = 1) {
   a_hat <- unname(stats::coef(fit)[["(Intercept)"]])
   b_hat <- unname(stats::coef(fit)[["x_lag"]])
   if (b_hat <= 0 || b_hat >= 1) {
-    cli::cli_abort(c(
-      "`x` is not consistent with an Ornstein-Uhlenbeck (mean-reverting) process.",
-      "i" = "The fitted AR(1) coefficient is {round(b_hat, 4)}; it must lie in (0, 1)."
-    ))
+    # A typed refusal: `x` is not compatible with an Ornstein-Uhlenbeck fit at
+    # all, so no result is returned. The extra classes let cross-member
+    # integration code recognise this as a structured decline (see
+    # ORCHESTRA_dev/integration/refusal_contract.R) rather than a bare error.
+    cli::cli_abort(
+      c(
+        "`x` is not consistent with an Ornstein-Uhlenbeck (mean-reverting) process.",
+        "i" = "The fitted AR(1) coefficient is {round(b_hat, 4)}; it must lie in (0, 1)."
+      ),
+      class = c("orchestra_refusal", "kalmix_refusal")
+    )
   }
 
   # Map back to continuous-time Ornstein-Uhlenbeck parameters -----------------
