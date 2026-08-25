@@ -218,9 +218,18 @@ c(online    = causal_information_rate(model, sim$x, dt = sim$dt,
 Because the online recursion never truncates the series, it also applies to
 time-varying state-space models, where the expanding construction cannot: a
 model whose system matrices change step by step still yields a lead-time from a
-single forward pass. The two engines agreeing only shows the smoother
-recursion is implemented consistently between them; it is not itself
-evidence for the lead-time value, which is under review (KM-01/02/03).
+single forward pass. The two engines agreeing shows only that the smoother
+recursion is implemented consistently between them: they share the quadrature
+and the reduction, so their agreement is not evidence about the range
+functional. That is graded separately, in a conformance suite that reduces
+`aciR`'s own divergence profile with `kalmix`'s reducer and requires the
+objective and subjective ranges of Andreou, Chen and Bollt (2026) to come back.
+
+The lead-time reported here is the *efficient* form of the range, the
+normalised integral of the divergence profile, which the source paper gives as
+an underestimate of the range obtained by averaging the subjective range over
+all tolerances. Pass `functional = "objective_exact"` for the latter; the two
+coincide only when the profile decreases with lag.
 
 ## A real ENSO index
 
@@ -230,11 +239,16 @@ Oceanic Nino Index: a recorded copy ships as a test fixture, and an
 online-gated test confirms the read-out behaves on data nobody in this package
 generated. On the recorded index the smoother tracks the observed ENSO swing
 closely and the decision lead-time lands near half a year, the kind of
-predictability horizon the ENSO literature reports. The lead-time estimate
-itself is under review (KM-01/02/03): the quadrature that turns the
-divergence profile into a single number is being re-checked against an
-independent implementation, so treat the reported figure as provisional
-until that review closes.
+predictability horizon the ENSO literature reports.
+
+Two things bound how far that figure should be pushed. The quadrature is now
+evaluated at every lag in the window rather than at a dozen points, and warns
+when a grid the caller thins has not converged, so the number is no longer
+grid-dependent at the default. And an anchor whose future window runs past the
+end of the record is right-censored: its range is integrated over the lags the
+record supports and returned as a lower bound with `censored` set, rather than
+extrapolated. A rolling read-out near the end of a record is censored by
+construction, and a censored lead-time cannot carry a grounded verdict.
 
 ## References
 

@@ -50,9 +50,17 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # aciR is the ACI conformance oracle: a second implementation of the
+      # method whose numerical core is graded against the authors' MATLAB
+      # reference. It is public and not on CRAN, so it is installed from
+      # GitHub rather than dropped; without it the conformance suite skips and
+      # the grade is not run in the clean room, which is the gap this job
+      # exists to close.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            github::biometryhub/ACI
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
