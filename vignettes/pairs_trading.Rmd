@@ -90,7 +90,7 @@ c(calm_half = mean(fit@regime_prob[1:200, 2]),
   wild_half = mean(fit@regime_prob[201:400, 2]))
 ```
 
-```{r regime-plot, echo = FALSE}
+```{r regime-plot, echo = FALSE, fig.cap = "The spread series (grey points) with the filtered probability of the turbulent regime (red line, right axis) overlaid."}
 plot(two_regime, col = "grey70", pch = 16, cex = 0.5, xlab = "time",
      ylab = "spread", main = "Filtered turbulent-regime probability")
 par(new = TRUE)

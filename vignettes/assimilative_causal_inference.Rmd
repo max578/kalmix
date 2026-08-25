@@ -99,7 +99,7 @@ Second, the causal information series is positive where the future of the
 series is informative about the hidden state, and the decision lead-time is a
 sensible, sub-decadal horizon:
 
-```{r info-plot, echo = FALSE}
+```{r info-plot, echo = FALSE, fig.cap = "Top: the hidden ENSO state recovered from the observed index alone, against the truth used to simulate it. Bottom: the per-step causal information series that recovery is built from."}
 years <- (seq_along(sim$x) - 1) * sim$dt
 op <- par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
 plot(years, sim$z[, 1], type = "l", col = "navy", xlab = "", ylab = "ENSO state T",
@@ -111,6 +111,12 @@ plot(years, fit@causal_information, type = "l", col = "firebrick",
      main = "ACI causal information series I_t = KL(smoother || filter)")
 par(op)
 ```
+
+The orange smoother trace (top) tracks the navy truth closely although the
+model never observes the state directly, and the causal-information trace
+(bottom) rises and falls with the oscillation rather than sitting flat at
+zero, which is the discriminating signature the null case below is checked
+against.
 
 ## The null carries no causal information
 
@@ -212,7 +218,9 @@ c(online    = causal_information_rate(model, sim$x, dt = sim$dt,
 Because the online recursion never truncates the series, it also applies to
 time-varying state-space models, where the expanding construction cannot: a
 model whose system matrices change step by step still yields a lead-time from a
-single forward pass.
+single forward pass. The two engines agreeing only shows the smoother
+recursion is implemented consistently between them; it is not itself
+evidence for the lead-time value, which is under review (KM-01/02/03).
 
 ## A real ENSO index
 
@@ -222,7 +230,11 @@ Oceanic Nino Index: a recorded copy ships as a test fixture, and an
 online-gated test confirms the read-out behaves on data nobody in this package
 generated. On the recorded index the smoother tracks the observed ENSO swing
 closely and the decision lead-time lands near half a year, the kind of
-predictability horizon the ENSO literature reports.
+predictability horizon the ENSO literature reports. The lead-time estimate
+itself is under review (KM-01/02/03): the quadrature that turns the
+divergence profile into a single number is being re-checked against an
+independent implementation, so treat the reported figure as provisional
+until that review closes.
 
 ## References
 
