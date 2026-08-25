@@ -1,3 +1,21 @@
+# kalmix (development version)
+
+## Documentation
+
+* Every figure-producing chunk across the five vignettes now carries a
+  `fig.cap` and at least one prose sentence interpreting the figure
+  (previously none of the ten figures were captioned).
+* *Assimilative causal inference with kalmix* flags the reported ACI
+  decision lead-time as under review pending an independent-oracle
+  conformance check of the underlying quadrature (tracked as KM-01,
+  KM-02, KM-03), at every point the vignette reports a numeric lead-time.
+* *Change-points and hidden states with kalmix* gains the governing
+  likelihood-ratio statistic for `detect_changepoint()`'s binary
+  segmentation, cited to Scott and Knott (1974); the reference list now
+  attributes binary segmentation to Scott and Knott rather than to
+  Killick, Fearnhead and Eckley (2012), whose linear-cost PELT algorithm
+  is noted as a "see also" alternative rather than the implemented method.
+
 # kalmix 0.5.0 (2026-07-05)
 
 ## New features

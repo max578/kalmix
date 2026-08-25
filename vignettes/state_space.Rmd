@@ -64,7 +64,7 @@ fit
 The filtered mean tracks the latent level far more closely than the raw
 observations do:
 
-```{r filter-plot, echo = FALSE}
+```{r filter-plot, echo = FALSE, fig.cap = "The noisy observations (grey points), the true latent level (black line) and the Kalman-filtered estimate (blue line)."}
 plot(y, col = "grey70", pch = 16, cex = 0.6, xlab = "time", ylab = "value",
      main = "Filtered state vs noisy observations")
 lines(level, col = "black", lwd = 2)
@@ -73,6 +73,9 @@ legend("topleft", c("truth", "observed", "filtered"),
        col = c("black", "grey70", "steelblue"),
        lwd = c(2, NA, 2), pch = c(NA, 16, NA), bty = "n")
 ```
+
+The blue filtered line sits much closer to the black truth than the raw grey
+observations do, recovering the latent level from noisy readings alone.
 
 ## Smoothing: using the whole series
 

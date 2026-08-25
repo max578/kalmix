@@ -63,7 +63,7 @@ spread_2005
 Simulating from the paper's equations gives a series where the true hidden
 spread is known, so every later claim can be checked against the truth:
 
-```{r simulate}
+```{r simulate, fig.cap = "The simulated observed spread (grey points) against the true hidden mean-reverting state (red line) it was generated from."}
 n <- 600
 x <- numeric(n)
 x[1] <- mu
@@ -77,6 +77,10 @@ plot(y, type = "p", cex = 0.4, col = "grey50",
      main = "Observed spread (points) and hidden state (line)")
 lines(x, col = "firebrick")
 ```
+
+The grey points are what a trader actually sees; the red line is the hidden
+mean-reverting state the paper's model describes, known here only because
+the series was simulated from it.
 
 ## Why least squares on the observed spread misprices the trade
 
@@ -138,7 +142,7 @@ $\mu = a/b$: enter a pair trade when the observed spread leaves the band
 $\mu \pm c\,\sigma/\sqrt{2\rho}$ and unwind when the state is expected back
 at $\mu$. The filtered state is the quantity those decisions condition on:
 
-```{r filter}
+```{r filter, fig.cap = "The observed spread (grey points) with the Kalman-filtered estimate (blue line) and the entry band (dashed) implied by the paper's trading rule."}
 fitted_model <- ssm(
   transition = B_hat, observation = 1,
   state_cov = C_hat^2, obs_cov = D_hat^2,
