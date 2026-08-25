@@ -46,9 +46,10 @@ Imports:
     stats,
     cli
 Suggests:
+    aciR,
     kernR,
     mvtnorm,
-    testthat (>= 3.0.0),
+    testthat (>= 3.1.5),
     withr,
     knitr,
     rmarkdown

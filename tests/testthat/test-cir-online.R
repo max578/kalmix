@@ -75,7 +75,7 @@ test_that("aci() uses the online engine, matching the expanding cross-check", {
   fit <- aci(model, x)
   expect_equal(
     fit@lead_time,
-    causal_information_rate(model, x, engine = "expanding"),
+    as.numeric(causal_information_rate(model, x, engine = "expanding")),
     tolerance = 1e-8
   )
 })
