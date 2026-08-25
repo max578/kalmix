@@ -14,7 +14,9 @@ aci_fit(
   smoother = NULL,
   grounding = "[unverified]",
   grounding_reason = NA_character_,
-  adequacy = NULL
+  adequacy = NULL,
+  censored = FALSE,
+  monotone = NA
 )
 }
 \arguments{
@@ -52,6 +54,16 @@ carries that token (\code{"grounded"}, \code{"mechanism_unverified"},
 
 \item{adequacy}{The \link{innov_diag} model-adequacy diagnostics the grounding was
 read from.}
+
+\item{censored}{Logical scalar -- whether any lead-time anchor was
+right-censored, that is whether its future window ran past the end of the
+record or its divergence profile had not decayed by the last lag it could
+be evaluated at. A censored lead-time is a lower bound, not an estimate,
+and degrades the grounding token.}
+
+\item{monotone}{Logical scalar -- whether every anchor's divergence profile
+decreases with lag, the condition under which the efficient and exact
+range functionals are the same functional.}
 }
 \value{
 An S7 object of class \code{aci_fit}.

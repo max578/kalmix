@@ -11,6 +11,9 @@ aci(
   dt = 1,
   eval_points = NULL,
   max_lag = NULL,
+  n_lag = NULL,
+  engine = c("online", "expanding"),
+  functional = c("objective", "objective_exact"),
   mechanism = NULL,
   alpha = 0.05,
   transition = NULL,
@@ -38,6 +41,18 @@ of the series.}
 
 \item{max_lag}{Integer scalar -- the largest future-window lag, in steps,
 used for the lead-time. Defaults to one fifth of the series length.}
+
+\item{n_lag}{Integer scalar or \code{NULL} -- the number of window lengths the
+divergence profile behind the lead-time is evaluated at; passed to
+\code{\link[=causal_information_rate]{causal_information_rate()}}, which also checks the quadrature has
+converged. Defaults to \code{NULL} (every lag, capped at 65 points).}
+
+\item{engine}{Character -- the lead-time engine, \code{"online"} (default) or
+\code{"expanding"}; passed to \code{\link[=causal_information_rate]{causal_information_rate()}}.}
+
+\item{functional}{Character -- \code{"objective"} (default) for the efficient
+integral form of the range, \code{"objective_exact"} for the threshold-averaged
+form; passed to \code{\link[=causal_information_rate]{causal_information_rate()}}.}
 
 \item{mechanism}{Optional declared provenance for the model as the
 data-generating mechanism: \code{NULL} (the default, an unverified

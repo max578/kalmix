@@ -1,14 +1,68 @@
 # kalmix (development version)
 
+## Breaking changes
+
+* **The objective causal influence range is normalised by the peak of the
+  divergence profile, not by its value at lag zero.** This is the
+  normalisation of Andreou, Chen and Bollt (2026), and the two agree only
+  when the profile decreases with lag, which on a real record it often does
+  not. Reported lead-times change, in either direction; on the package's own
+  dyad conformance fixture the old normaliser was 58 per cent high at one
+  anchor.
+* **`causal_information_rate()` evaluates every lag in the window by
+  default** (`n_lag = NULL`), where it previously used a twelve-point grid.
+  A twelve-point trapezoid over a sharply decaying profile over-estimates
+  the integral; on the package's ENSO fixture the old default was about
+  9 per cent high against the fully resolved quadrature. Pass an explicit
+  `n_lag` for the former behaviour.
+* **An anchor whose future window runs past the end of the record is
+  right-censored rather than extrapolated.** The divergence at the last
+  resolvable lag was previously carried forward as a constant over every
+  remaining lag, which inflated the integral without warning; at step 580 of
+  a 600-step series with a 120-step window that produced a range of 32.7
+  steps from twenty steps of data. The integral now stops at the last
+  resolved lag and the result is flagged.
+
+## New features
+
+* `causal_information_rate()` gains `functional`, choosing between the
+  efficient integral form of the range (`"objective"`, the default, which
+  the source paper gives as an underestimate) and the threshold-averaged
+  form (`"objective_exact"`), and `epsilon` for the tolerance grid the
+  latter averages over.
+* `causal_information_rate()` gains `margin` and `tol`, and returns its
+  scalar with `censored`, `censored_fraction`, `monotone` and `n_lag`
+  attributes. A thinned quadrature grid is compared with the same reduction
+  on every other point and warns when the two disagree by more than `tol`.
+* `aci()` gains `n_lag`, `engine` and `functional`, so the flagship verb can
+  refine and re-specify the lead-time it reports; previously neither the
+  grid nor the engine could be reached through it.
+* `aci_fit` gains `censored` and `monotone` properties, `print()` marks a
+  censored lead-time as a lower bound, and a censored anchor degrades the
+  grounding token to `[unverified]` with reason `"censored_horizon"`.
+
+## Bug fixes
+
+* The documented functional now matches the computed one. The roxygen
+  previously asserted an integration-by-parts identity between the
+  threshold-averaged and integral forms that holds only for a decreasing
+  profile, while defining the subjective range as the *first* lag below the
+  tolerance where the source paper takes the *last* lag above it.
+
 ## Documentation
 
 * Every figure-producing chunk across the five vignettes now carries a
   `fig.cap` and at least one prose sentence interpreting the figure
   (previously none of the ten figures were captioned).
-* *Assimilative causal inference with kalmix* flags the reported ACI
-  decision lead-time as under review pending an independent-oracle
-  conformance check of the underlying quadrature (tracked as KM-01,
-  KM-02, KM-03), at every point the vignette reports a numeric lead-time.
+* *Assimilative causal inference with kalmix* states which range functional
+  the reported lead-time is, that the two engines cross-check the smoother
+  recursion and not the quadrature, and how a censored anchor is reported.
+* *Change-points and hidden states with kalmix* gains the governing
+  likelihood-ratio statistic for `detect_changepoint()`'s binary
+  segmentation, cited to Scott and Knott (1974); the reference list now
+  attributes binary segmentation to Scott and Knott rather than to
+  Killick, Fearnhead and Eckley (2012), whose linear-cost PELT algorithm
+  is noted as a "see also" alternative rather than the implemented method.
 * *Change-points and hidden states with kalmix* gains the governing
   likelihood-ratio statistic for `detect_changepoint()`'s binary
   segmentation, cited to Scott and Knott (1974); the reference list now

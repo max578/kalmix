@@ -2,7 +2,7 @@
 % Please edit documentation in R/cir.R
 \name{causal_information_rate}
 \alias{causal_information_rate}
-\title{Objective causal information rate and decision lead-time}
+\title{Objective causal influence range and decision lead-time}
 \usage{
 causal_information_rate(
   model,
@@ -10,8 +10,12 @@ causal_information_rate(
   dt = 1,
   eval_points = NULL,
   max_lag = NULL,
-  n_lag = 12L,
+  n_lag = NULL,
   engine = c("online", "expanding"),
+  functional = c("objective", "objective_exact"),
+  epsilon = .cir_epsilon_grid(),
+  margin = 0.1,
+  tol = 0.02,
   transition = NULL,
   init_prob = NULL
 )
@@ -32,28 +36,53 @@ Defaults to \code{NULL}, which places anchors across the interior of the series
 Defaults to one fifth of the series length, capped so an anchor still has
 future to integrate over.}
 
-\item{n_lag}{Integer scalar -- the number of window lengths the divergence
-profile is evaluated at, including zero. Defaults to \code{12}.}
+\item{n_lag}{Integer scalar or \code{NULL} -- the number of window lengths the
+divergence profile is evaluated at, including zero. Defaults to \code{NULL},
+which evaluates every lag in the window, the finest grid the record
+supports, capped at \code{401} points. A thinned grid over-estimates the
+integral of a sharply decaying profile, so whenever the grid is thinned
+the quadrature is compared with the same reduction on every other point
+and a warning is issued when the two disagree by more than \code{tol} in
+relative terms.}
 
 \item{engine}{Character -- \code{"online"} (default) computes the lead-time with a
 fixed-point smoother recursion that avoids re-smoothing and handles
 time-varying models; \code{"expanding"} reruns the smoother on each truncated
 series and requires a time-invariant model. The two agree to numerical
-precision and cross-check each other. A regime-switching model always
-uses the expanding construction (the online recursion is
+precision and cross-check the smoother recursion. A regime-switching model
+always uses the expanding construction (the online recursion is
 linear-Gaussian only) and \code{engine} is ignored.}
+
+\item{functional}{Character -- \code{"objective"} (default) for the efficient
+integral form, \code{"objective_exact"} for the threshold-averaged form. See
+the details.}
+
+\item{epsilon}{Numeric vector -- the tolerance grid the exact functional
+averages the subjective range over, in nats. Defaults to the 129-point
+logarithmic grid \code{10^seq(-6, 0.5, length.out = 129)}, matching \code{aciR}'s
+default. Ignored by \code{functional = "objective"}.}
+
+\item{margin}{Numeric scalar in \verb{(0, 1)} -- the fraction of its peak the
+profile must have decayed below by its last evaluated lag for the anchor
+to count as resolved. Defaults to \code{0.1}.}
+
+\item{tol}{Numeric scalar -- the relative disagreement between the quadrature
+and the same quadrature on half the grid points above which a warning is
+issued. Defaults to \code{0.02}. Set to \code{Inf} to silence the check.}
 
 \item{transition, init_prob}{The regime-transition matrix and initial
 regime distribution when \code{model} is a list of regimes; passed to
 \code{\link[=mixture_filter]{mixture_filter()}} and \code{\link[=mixture_smoother]{mixture_smoother()}}. Ignored for an \link{ssm}.}
 }
 \value{
-Numeric scalar -- the objective causal information rate (a lead-time
+Numeric scalar -- the objective causal influence range (a lead-time
 in the time units set by \code{dt}), \code{0} where no future information is
-recoverable.
+recoverable, carrying the attributes \code{censored} (logical),
+\code{censored_fraction} (numeric), \code{monotone} (logical, whether every anchor's
+profile decreases with lag) and \code{n_lag} (the grid size used).
 }
 \description{
-Computes the objective, threshold-free causal information rate of Andreou,
+Computes the objective, threshold-free causal influence range of Andreou,
 Chen and Bollt (2026, eqs. 8--9) for a state-space model: the effective
 horizon over which the future of the observed series keeps informing the
 estimate of the latent state, returned as a decision lead-time in the time
@@ -65,15 +94,25 @@ window: the relative entropy \eqn{D(L)} of the complete smoother from the
 smoother that has seen the series only up to \eqn{t_0 + L} (their eq. 8,
 with the complete smoother as the integrating density) falls from its
 filter value at \eqn{L = 0} -- the per-step causal information of eq. 7 --
-towards zero as the window grows. The subjective
-range at tolerance \eqn{\varepsilon} is
-\eqn{\tau_\varepsilon = \inf\{L : D(L) \le \varepsilon\}}; integrating the
-tolerance out gives the threshold-free range
-\deqn{\tau(t_0) = \frac1M \int_0^M \tau_\varepsilon\, d\varepsilon
-  = \frac1M \int_0^{L_{\max}} D(L)\, dL,}
-with \eqn{M = D(0)} the filter value, the second equality by integration by
-parts of the decreasing profile. The rate is the average of \eqn{\tau(t_0)}
-over the anchors, scaled to time units by \code{dt}.
+towards zero as the window grows.
+
+Two functionals reduce that profile to a range, and they are different
+functionals rather than two quadratures of one. The subjective range at
+tolerance \eqn{\varepsilon} is the \emph{last} lag at which the profile still
+exceeds \eqn{\varepsilon},
+\eqn{\tau_\varepsilon = \sup\{L : D(L) > \varepsilon\}}, and
+\code{functional = "objective_exact"} averages it over the tolerance,
+\eqn{M^{-1}\int_0^M \tau_\varepsilon \, d\varepsilon} with
+\eqn{M = \max_L D(L)}. The default \code{functional = "objective"} is the
+computationally efficient underestimate the source paper gives,
+\deqn{\tau(t_0) = \frac1M \int_0^{L_{\max}} D(L)\, dL.}
+The two coincide when the profile decreases with lag, by the layer-cake
+identity, and the integral form is strictly the smaller as soon as it does
+not; a profile that rises before it decays is the ordinary case near the
+start of a record. Monotonicity is assumed for convenience in the source
+paper and is not required by the theory, so \code{"objective"} is reported as a
+lower bound and \code{attr(x, "monotone")} records whether the two agree. The
+range is averaged over the anchors and scaled to time units by \code{dt}.
 
 Two engines compute the same divergence profile. The default \code{"online"}
 engine grows the future window through a fixed-point smoother recursion: the
@@ -83,8 +122,18 @@ the whole profile costs one filter-smoother pass plus \code{length(eval_points)}
 light forward recursions and no re-smoothing. It is exact and applies to
 time-varying models. The \code{"expanding"} engine instead reruns the filter and
 smoother on each truncated series -- the direct construction of the published
-equations, retained as an independent cross-check and restricted to
-time-invariant models. The two agree to numerical precision.
+equations, retained as a cross-check on the smoother recursion and restricted
+to time-invariant models. The two share the quadrature and the reduction, so
+their agreement grades the recursion and not the range functional; the
+independent grading of the functional is the conformance suite against
+\code{aciR}.
+
+An anchor whose future window runs past the end of the record cannot be
+resolved. The profile is then integrated over the lags the record does
+support and no further -- the value is a lower bound, not an estimate -- and
+the anchor is marked censored. So is an anchor whose profile has not decayed
+to within \code{margin} of its peak by the last lag it could be evaluated at,
+since the window was too short to see the influence expire. \code{attr(x, "censored")} is \code{TRUE} when any anchor is censored and \code{attr(x, "censored_fraction")} gives the proportion that are.
 }
 \examples{
 model <- ssm(

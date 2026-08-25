@@ -61,6 +61,14 @@
 #'   `"model_inadequate"` or `"insufficient_data"`).
 #' @param adequacy The [innov_diag] model-adequacy diagnostics the grounding was
 #'   read from.
+#' @param censored Logical scalar -- whether any lead-time anchor was
+#'   right-censored, that is whether its future window ran past the end of the
+#'   record or its divergence profile had not decayed by the last lag it could
+#'   be evaluated at. A censored lead-time is a lower bound, not an estimate,
+#'   and degrades the grounding token.
+#' @param monotone Logical scalar -- whether every anchor's divergence profile
+#'   decreases with lag, the condition under which the efficient and exact
+#'   range functionals are the same functional.
 #'
 #' @returns An S7 object of class `aci_fit`.
 #' @family causal
@@ -90,7 +98,15 @@ aci_fit <- S7::new_class(
       class = S7::class_character,
       default = NA_character_
     ),
-    adequacy = S7::class_any
+    adequacy = S7::class_any,
+    censored = S7::new_property(
+      class = S7::class_logical,
+      default = FALSE
+    ),
+    monotone = S7::new_property(
+      class = S7::class_logical,
+      default = NA
+    )
   ),
   validator = function(self) {
     if (anyNA(self@causal_information) ||
@@ -234,6 +250,15 @@ aci_fit <- S7::new_class(
 #'   of the series.
 #' @param max_lag Integer scalar -- the largest future-window lag, in steps,
 #'   used for the lead-time. Defaults to one fifth of the series length.
+#' @param n_lag Integer scalar or `NULL` -- the number of window lengths the
+#'   divergence profile behind the lead-time is evaluated at; passed to
+#'   [causal_information_rate()], which also checks the quadrature has
+#'   converged. Defaults to `NULL` (every lag, capped at 65 points).
+#' @param engine Character -- the lead-time engine, `"online"` (default) or
+#'   `"expanding"`; passed to [causal_information_rate()].
+#' @param functional Character -- `"objective"` (default) for the efficient
+#'   integral form of the range, `"objective_exact"` for the threshold-averaged
+#'   form; passed to [causal_information_rate()].
 #' @param mechanism Optional declared provenance for the model as the
 #'   data-generating mechanism: `NULL` (the default, an unverified
 #'   mechanism), or a list carrying a `verified_on` `Date` on which the model
@@ -283,6 +308,9 @@ aci <- function(model,
                 dt = 1,
                 eval_points = NULL,
                 max_lag = NULL,
+                n_lag = NULL,
+                engine = c("online", "expanding"),
+                functional = c("objective", "objective_exact"),
                 mechanism = NULL,
                 alpha = 0.05,
                 transition = NULL,
@@ -320,17 +348,31 @@ aci <- function(model,
 
   rate <- NA_real_
   lead <- NA_real_
+  censored <- FALSE
+  monotone <- NA
   if (isTRUE(lead_time)) {
     rate <- causal_information_rate(
       model, y,
       dt = dt, eval_points = eval_points, max_lag = max_lag,
+      n_lag = n_lag, engine = match.arg(engine),
+      functional = match.arg(functional),
       transition = transition, init_prob = init_prob
     )
-    lead <- rate
+    censored <- isTRUE(attr(rate, "censored"))
+    monotone <- attr(rate, "monotone")
+    lead <- as.numeric(rate)
+    rate <- as.numeric(rate)
   }
 
   adequacy <- innovation_diagnostics(filter, alpha = alpha)
   grounding <- .aci_grounding(adequacy, mechanism)
+  # A censored lead-time is a bound taken from a window the record could not
+  # close. The read-out cannot be grounded on it, whatever the diagnostics say.
+  if (censored && identical(grounding$grounding, .grounding_grounded)) {
+    grounding <- list(
+      grounding = .grounding_unverified, reason = "censored_horizon"
+    )
+  }
 
   aci_fit(
     causal_information = info,
@@ -342,7 +384,9 @@ aci <- function(model,
     smoother = smoother,
     grounding = grounding$grounding,
     grounding_reason = grounding$reason,
-    adequacy = adequacy
+    adequacy = adequacy,
+    censored = censored,
+    monotone = monotone
   )
 }
 
@@ -389,8 +433,9 @@ S7::method(print, aci_fit) <- function(x, ...) {
   if (is.finite(x@lead_time)) {
     unit <- if (isTRUE(all.equal(x@dt, 1))) "steps" else "time units"
     cat(sprintf(
-      "  decision lead-time      : %.3f %s\n",
-      x@lead_time, unit
+      "  decision lead-time      : %.3f %s%s\n",
+      x@lead_time, unit,
+      if (isTRUE(x@censored)) " (censored -- a lower bound)" else ""
     ))
   } else {
     cat("  decision lead-time      : not computed\n")
