@@ -117,6 +117,15 @@
   attributes binary segmentation to Scott and Knott rather than to
   Killick, Fearnhead and Eckley (2012), whose linear-cost PELT algorithm
   is noted as a "see also" alternative rather than the implemented method.
+* All five vignettes are restructured to a fixed Why/What/Do/Read/Limits/
+  What to read next/Reproduce shape, each opening on the question a
+  grower, marketer or analyst would actually ask; every printed number is
+  now computed inline or cited to a named test artefact, every figure is
+  a colourblind-safe `ggplot2` plot with a caption, and the crop framing
+  leads throughout, including a live read-out on the real public NOAA
+  Oceanic Nino Index in *Assimilative causal inference with kalmix*, which
+  also now shows the `kalmix_abstention` classes a genuinely inadequate
+  model's read-out carries.
 
 # kalmix 0.5.0 (2026-07-05)
 

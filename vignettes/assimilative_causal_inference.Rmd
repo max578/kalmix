@@ -7,50 +7,80 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- Render time: ~45 s under rmarkdown::render(), dominated by seven
+     causal_information_rate()/aci() calls each quadrating over the full
+     lag grid; macOS arm64 (Darwin aarch64), R 4.5.2, one core. -->
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
-                      fig.height = 4)
+                      fig.height = 4.5, dpi = 150)
 set.seed(1)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+```{r library}
 library(kalmix)
 ```
 
-The interrupted-time-series contrast of `its_causal()` asks what an
-intervention *did*. Assimilative causal inference asks a different question:
-across a continuously observed series, *when* and *how far ahead* does a hidden
-driver carry causal information about what we measure. `aci()` answers it by
-reading a divergence off the two passes `kalmix` already provides: the Kalman
-filter and the Rauch-Tung-Striebel smoother.
+## Why
 
-## Causality as an assimilation problem
+An agronomist watching a crop-water-stress index through the season, and
+suspecting it responds to a slow-moving climate driver, asks a question that
+is subtly different from an ordinary correlation: does the future of the
+index actually carry information about a hidden climate state, how far
+ahead could that give a decision-relevant warning, and can the answer be
+trusted, or does the read-out itself need to say when it does not know?
+`aci()` answers this by reading a divergence off the two passes `kalmix`
+already provides: the Kalman filter and the Rauch-Tung-Striebel smoother of
+*Getting started: state-space models with kalmix*. Assimilative causal
+inference (Andreou, Chen and Bollt, 2026) casts causal inference as a
+Bayesian data-assimilation inverse problem: a hidden state is a cause of an
+observed effect at time $t$ exactly when incorporating the *future* of the
+effect sharpens the estimate of the state at $t$.
 
-Andreou, Chen and Bollt (2026) cast causal inference as a Bayesian
-data-assimilation inverse problem. A hidden state is a cause of an observed
-effect at time $t$ exactly when incorporating the *future* of the effect
-sharpens our estimate of the state at $t$. The filter estimates the state from
-the past alone, giving $N(x_{t\mid t}, P_{t\mid t})$; the smoother adds the
-future, giving $N(x_{t\mid n}, P_{t\mid n})$. The causal information the
-measurement carries about the state at $t$ is the relative entropy
-(Kullback-Leibler divergence) of the smoother from the filter,
+## What
+
+[`aci()`](../reference/aci.html) runs the filter and smoother over an
+[`ssm`](../reference/ssm.html) and reads the causal information series and
+decision lead-time off the two passes, returning an
+[`aci_fit`](../reference/aci_fit.html).
+[`causal_information_rate()`](../reference/causal_information_rate.html)
+computes the lead-time alone, and is what `aci()` calls internally.
+[`innovation_diagnostics()`](../reference/innovation_diagnostics.html) is
+the model-adequacy battery `aci()` grounds its verdict through: a Ljung-Box
+whiteness test, a scale test on the total normalised innovation, and a
+Jarque-Bera normality test, combined conservatively.
+
+## Do
+
+### Causality as an assimilation problem
+
+The filter estimates the state from the past alone, giving
+$N(x_{t\mid t}, P_{t\mid t})$; the smoother adds the future, giving
+$N(x_{t\mid n}, P_{t\mid n})$. The causal information the measurement
+carries about the state at $t$ is the relative entropy (Kullback-Leibler
+divergence) of the smoother from the filter,
 
 $$I_t = D_{\mathrm{KL}}\!\left(
   N(x_{t\mid n}, P_{t\mid n}) \,\Vert\, N(x_{t\mid t}, P_{t\mid t}) \right).$$
 
-For two Gaussians this is a closed form, which `kalmix` computes natively. Time
-averaged, and integrated over an expanding future window, the divergence yields
-a threshold-free *causal information rate*, a decision lead-time in the time
-units of the series.
+For two Gaussians this is a closed form, which `kalmix` computes natively.
+Time averaged, and integrated over an expanding future window, the
+divergence yields a threshold-free *causal information rate*, a decision
+lead-time in the time units of the series.
 
-## A known-truth test: a recharge oscillator
+### A known-truth test: a recharge oscillator
 
-The cleanest way to trust a causal read-out is to run it on a system whose truth
-we control. We use a noise-sustained recharge oscillator (Jin, 1997), the
-canonical conceptual model of the El Nino-Southern Oscillation (ENSO). The
-hidden state $(T, h)$ is a sea-surface-temperature anomaly $T$ and a
-thermocline-depth anomaly $h$; their coupled, weakly damped dynamics produce an
-irregular oscillation of roughly four years. We observe only a scalar that warm
-$T$ drives through a coupling `kappa`. Think of a crop-water-stress index that
-rises in an El Nino year. When `kappa` is zero the observation tells us nothing
-about the hidden cause.
+The cleanest way to trust a causal read-out is to run it on a system whose
+truth is controlled. We simulate a synthetic series from a noise-sustained
+recharge oscillator (Jin, 1997), the canonical conceptual model of the El
+Nino-Southern Oscillation (ENSO). The hidden state $(T, h)$ is a
+sea-surface-temperature anomaly $T$ and a thermocline-depth anomaly $h$;
+their coupled, weakly damped dynamics produce an irregular oscillation of
+roughly four years. We observe only a scalar that warm $T$ drives through a
+coupling `kappa`, standing in for a crop-water-stress index that rises in an
+El Nino year. When `kappa` is zero the observation tells us nothing about
+the hidden cause.
 
 ```{r simulate}
 simulate_enso <- function(n = 600, kappa = 0.6, dt = 1 / 12, obs_sd = 0.5) {
@@ -70,8 +100,8 @@ sim <- simulate_enso(kappa = 0.6)
 ```
 
 We give `aci()` a state-space model matching the data-generating process. The
-observation operator maps the first hidden component (the SST anomaly) to the
-observed series through the coupling:
+observation operator maps the first hidden component (the SST anomaly) to
+the observed series through the coupling:
 
 ```{r model}
 model <- ssm(
@@ -85,45 +115,58 @@ model <- ssm(
 
 fit <- aci(model, sim$x, dt = sim$dt)
 fit
+
+recovery_cor <- cor(fit@smoother@smoothed_mean[, 1], sim$z[, 1])
 ```
 
-Two things to check against the known truth. First, the smoother recovers the
-hidden SST anomaly from the observed series *alone*, the inverse-problem
-essence:
+Two things to check against the known truth. First, the smoother recovers
+the hidden SST anomaly from the observed series *alone*, the inverse-problem
+essence, at a correlation of `r round(recovery_cor, 3)` with the simulated
+truth. Second, the causal information series should be positive where the
+future of the series is informative about the hidden state.
 
-```{r recovery}
-cor(fit@smoother@smoothed_mean[, 1], sim$z[, 1])
-```
-
-Second, the causal information series is positive where the future of the
-series is informative about the hidden state, and the decision lead-time is a
-sensible, sub-decadal horizon:
-
-```{r info-plot, echo = FALSE, fig.cap = "Top: the hidden ENSO state recovered from the observed index alone, against the truth used to simulate it. Bottom: the per-step causal information series that recovery is built from."}
+```{r info-plot, echo = has_ggplot2, eval = has_ggplot2, fig.cap = "Top: the hidden ENSO state recovered from the observed index alone, against the truth used to simulate it. Bottom: the per-step causal information series that recovery is built from."}
 years <- (seq_along(sim$x) - 1) * sim$dt
-op <- par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
-plot(years, sim$z[, 1], type = "l", col = "navy", xlab = "", ylab = "ENSO state T",
-     main = "Hidden ENSO state (navy) vs smoother estimate from the index alone (orange)")
-lines(years, fit@smoother@smoothed_mean[, 1], col = "orange")
-abline(h = 0, lty = 3, col = "grey60")
-plot(years, fit@causal_information, type = "l", col = "firebrick",
-     xlab = "year", ylab = "causal information (nats)",
-     main = "ACI causal information series I_t = KL(smoother || filter)")
-par(op)
+plot_data <- rbind(
+  data.frame(year = years, value = sim$z[, 1], series = "truth (simulated)",
+             panel = "Hidden ENSO state"),
+  data.frame(year = years, value = fit@smoother@smoothed_mean[, 1],
+             series = "smoother estimate", panel = "Hidden ENSO state"),
+  data.frame(year = years, value = fit@causal_information,
+             series = "causal information",
+             panel = "Causal information I_t (nats)")
+)
+panel_levels <- c("Hidden ENSO state", "Causal information I_t (nats)")
+plot_data$panel <- factor(plot_data$panel, levels = panel_levels)
+
+ggplot2::ggplot(plot_data, ggplot2::aes(x = year, y = value, colour = series)) +
+  ggplot2::geom_line(linewidth = 0.5) +
+  ggplot2::facet_wrap(~panel, ncol = 1, scales = "free_y") +
+  ggplot2::scale_colour_viridis_d(name = NULL, end = 0.8) +
+  ggplot2::labs(
+    x = "year", y = NULL,
+    title = "Recovered state and causal information, coupled system"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
-The orange smoother trace (top) tracks the navy truth closely although the
-model never observes the state directly, and the causal-information trace
-(bottom) rises and falls with the oscillation rather than sitting flat at
-zero, which is the discriminating signature the null case below is checked
-against.
+```{r info-plot-skip, echo = FALSE, eval = !has_ggplot2, results = "asis"}
+cat("ggplot2 is not installed on this build, so the recovery-and-information",
+    "figure is skipped.\n")
+```
 
-## The null carries no causal information
+The smoother trace tracks the truth closely in the top panel although the
+model never observes the state directly, and the causal-information trace
+in the bottom panel rises and falls with the oscillation rather than
+sitting flat at zero, which is the discriminating signature the null case
+below is checked against.
+
+### The null carries no causal information
 
 Under the null of no coupling between the hidden state and the observation,
-the future of the series adds nothing the filter did not already have, so the
-causal information collapses to zero and the lead-time with it. This is the
-discriminating behaviour a causal read-out must show:
+the future of the series adds nothing the filter did not already have, so
+the causal information collapses to zero and the lead-time with it:
 
 ```{r null}
 sim_null <- simulate_enso(kappa = 0)
@@ -136,130 +179,271 @@ model_null <- ssm(
   init_cov = diag(c(1, 1))
 )
 fit_null <- aci(model_null, sim_null$x, dt = sim_null$dt)
-c(coupled = fit@mean_causal_information, null = fit_null@mean_causal_information)
-c(coupled_lead = fit@lead_time, null_lead = fit_null@lead_time)
 ```
 
-The coupled system carries causal information and a positive lead-time; the null
-carries neither.
+```{r null-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    system = c("coupled (kappa = 0.6)", "null (kappa = 0)"),
+    mean_causal_information = round(
+      c(fit@mean_causal_information, fit_null@mean_causal_information), 4
+    ),
+    lead_time_years = round(c(fit@lead_time, fit_null@lead_time), 3)
+  ),
+  col.names = c("System", "Mean causal information (nats)",
+                "Lead-time (years)"),
+  caption = paste(
+    "The coupled system carries causal information and a positive",
+    "lead-time; the null carries neither."
+  )
+)
+```
 
-## A divergence between two Gaussians, cross-checked
+### A divergence between two Gaussians, cross-checked
 
-The metric `aci()` reads off the two passes is the relative entropy between the
-smoother and filter Gaussians at each step. This is canonical Gaussian
-arithmetic, so `kalmix` implements it natively and stays self-contained. Where
-the `kernR` package is installed, its `relative_entropy()` provides
-an independent check on the value: the package's test suite asserts the two
-agree and skips the comparison when `kernR` is absent, so `kalmix` builds and
-checks cleanly either way.
+The metric `aci()` reads off the two passes is the relative entropy between
+the smoother and filter Gaussians at each step. This is canonical Gaussian
+arithmetic, so `kalmix` implements it natively and stays self-contained.
+Where the `kernR` package is installed, its `relative_entropy()` provides an
+independent check on the value: the package's test suite asserts the two
+agree and skips the comparison when `kernR` is absent, so `kalmix` builds
+and checks cleanly either way.
 
-## Grounding the verdict: abstention under model error
+### Grounding the verdict: abstention under model error
 
-ACI reads its causal verdict off a state-space model, so the verdict is only as
-good as the model. A model that cannot even describe the observed series
-cannot support a causal claim about it. `aci()` therefore grounds every read-out
-through `innovation_diagnostics()`, the standard battery of state-space model
-checks run on the standardised one-step-ahead innovations: a Ljung-Box test for
-serial correlation, a $\chi^2$ test of the total normalised innovation squared
-for a mis-scaled noise level, and a Jarque-Bera test for non-Gaussianity. When
-the innovations reject the model it is declared inadequate and the verdict
-abstains with a `[unverified]` grounding token instead of asserting a confident
-lead-time.
+ACI reads its causal verdict off a state-space model, so the verdict is only
+as good as the model. A model that cannot even describe the observed series
+cannot support a causal claim about it. `aci()` therefore grounds every
+read-out through `innovation_diagnostics()`, run on the standardised
+one-step-ahead innovations. When the innovations reject the model it is
+declared inadequate and the verdict abstains, with a distinct grounding
+token instead of a confident lead-time:
 
 ```{r abstain}
-# A frozen-state local level cannot track the oscillating ENSO index: its
-# innovations are autocorrelated and mis-scaled, so ACI abstains.
+## A frozen-state local level cannot track the oscillating ENSO index: its
+## innovations are autocorrelated and mis-scaled, so ACI abstains.
 frozen <- ssm(transition = 1, observation = 1, state_cov = 1e-6, obs_cov = 1,
               init_state = 0, init_cov = 10)
 abstained <- aci(frozen, sim$x, dt = sim$dt)
-c(grounding = abstained@grounding, reason = abstained@grounding_reason)
-abstained@adequacy
+abstained@grounding
+abstained@grounding_reason
+abstained@adequacy@adequate
+abstention_classes <- class(abstained)
+abstention_classes
 ```
-
-Passing the diagnostics establishes self-consistency only. It does not verify
-the model against the outside world, which is what grounding means. An adequate
-model is labelled `"grounded"` solely when it is accompanied by declared, dated
-mechanism provenance: a record that the model was checked against the external
-authority that owns it. Without that, the label stays `[unverified]`,
-even when the model fits.
 
 ```{r grounded}
-# Adequate but unverified by default; grounded only with dated provenance.
-aci(model, sim$x, dt = sim$dt)@grounding
-aci(model, sim$x, dt = sim$dt,
-    mechanism = list(source = "validated against the OSSE truth",
-                     verified_on = as.Date("2026-06-14")))@grounding
+## Adequate but unverified by default; grounded only with dated provenance.
+adequate_unverified <- aci(model, sim$x, dt = sim$dt)@grounding
+adequate_grounded <- aci(
+  model, sim$x, dt = sim$dt,
+  mechanism = list(source = "validated against the OSSE truth",
+                    verified_on = as.Date("2026-06-14"))
+)@grounding
 ```
 
-This is ACI's guard against its own central limitation: the verdict is only as
-good as the model, so a model the data reject, or one whose standing as the
-true mechanism has never been checked, is never allowed to pass as a grounded
-causal claim.
+### The lead-time without re-smoothing
 
-## The lead-time without re-smoothing
-
-The decision lead-time integrates a divergence profile over an expanding future
-window. Formed directly, each window length reruns the smoother on a truncated
-series. `kalmix` instead grows the smoothed estimate of the anchor state forward
-in place as each later observation is assimilated (a fixed-point smoother
-recursion that accumulates the Rauch-Tung-Striebel gains), so the whole profile
-costs one filter-smoother pass and a light forward recursion per anchor, with no
-re-smoothing. This `online` engine is the default; the `expanding` engine is
-retained as an independent cross-check, and the two agree to numerical
-precision.
+The decision lead-time integrates a divergence profile over an expanding
+future window. Formed directly, each window length reruns the smoother on a
+truncated series. `kalmix` instead grows the smoothed estimate of the
+anchor state forward in place as each later observation is assimilated (a
+fixed-point smoother recursion that accumulates the Rauch-Tung-Striebel
+gains), so the whole profile costs one filter-smoother pass and a light
+forward recursion per anchor, with no re-smoothing. This `online` engine is
+the default; the `expanding` engine is retained as an independent
+cross-check:
 
 ```{r engines}
-c(online    = causal_information_rate(model, sim$x, dt = sim$dt,
-                                      engine = "online"),
-  expanding = causal_information_rate(model, sim$x, dt = sim$dt,
-                                      engine = "expanding"))
+cir_online <- causal_information_rate(model, sim$x, dt = sim$dt,
+                                       engine = "online")
+cir_expanding <- causal_information_rate(model, sim$x, dt = sim$dt,
+                                          engine = "expanding")
+```
+
+```{r engines-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    engine = c("online (default)", "expanding"),
+    lead_time_years = round(c(cir_online, cir_expanding), 6)
+  ),
+  col.names = c("Engine", "Lead-time (years)"),
+  caption = paste(
+    "The two engines agree to numerical precision on the coupled system."
+  )
+)
 ```
 
 Because the online recursion never truncates the series, it also applies to
 time-varying state-space models, where the expanding construction cannot: a
-model whose system matrices change step by step still yields a lead-time from a
-single forward pass. The two engines agreeing shows only that the smoother
-recursion is implemented consistently between them: they share the quadrature
-and the reduction, so their agreement is not evidence about the range
-functional. That is graded separately, in a conformance suite that reduces
-`aciR`'s own divergence profile with `kalmix`'s reducer and requires the
-objective and subjective ranges of Andreou, Chen and Bollt (2026) to come back.
+model whose system matrices change step by step still yields a lead-time
+from a single forward pass. The two engines agreeing shows only that the
+smoother recursion is implemented consistently between them: they share the
+quadrature and the reduction, so their agreement is not evidence about the
+range functional itself. That functional is graded separately, in the
+package's own conformance suite (`tests/testthat/test-cir-conformance.R`),
+which reduces `aciR`'s own divergence profile with `kalmix`'s reducer and
+requires the objective and subjective ranges of Andreou, Chen and Bollt
+(2026) to come back; `aciR` is in turn graded cell-by-cell against the
+method authors' MATLAB reference. That chain, back to the authors' own
+code, is what makes it an oracle here, and it is not recomputed in this
+vignette.
 
-The lead-time reported here is the *efficient* form of the range, the
-normalised integral of the divergence profile, which the source paper gives as
-an underestimate of the range obtained by averaging the subjective range over
-all tolerances. Pass `functional = "objective_exact"` for the latter; the two
-coincide only when the profile decreases with lag.
+### A real ENSO index
 
-## A real ENSO index
+The known-truth oscillator proves the read-out is internally consistent; the
+package's test suite also runs `aci()` on the real NOAA Oceanic Nino Index
+(ONI) as an external check, in `tests/testthat/test-aci.R`, on a fixture
+shipped with the package (`tests/testthat/fixtures/oni_noaa.csv`, the CPC
+ONI series, 1980 to 2020, public-domain US Government data, NOAA Climate
+Prediction Center). The same model and data are reproduced here directly,
+rather than cited unrun, so the number below is computed in this vignette:
 
-The known-truth oscillator proves the read-out is internally consistent. As an
-external check, the package's test suite also runs `aci()` on the real NOAA
-Oceanic Nino Index: a recorded copy ships as a test fixture, and an
-online-gated test confirms the read-out behaves on data nobody in this package
-generated. On the recorded index the smoother tracks the observed ENSO swing
-closely and the decision lead-time lands near half a year, the kind of
-predictability horizon the ENSO literature reports.
+```{r oni-load}
+oni_path <- file.path("..", "tests", "testthat", "fixtures", "oni_noaa.csv")
+has_oni <- file.exists(oni_path)
+```
 
-Two things bound how far that figure should be pushed. The quadrature is now
-evaluated at every lag in the window rather than at a dozen points, and warns
-when a grid the caller thins has not converged, so the number is no longer
-grid-dependent at the default. And an anchor whose future window runs past the
-end of the record is right-censored: its range is integrated over the lags the
-record supports and returned as a lower bound with `censored` set, rather than
-extrapolated. A rolling read-out near the end of a record is censored by
-construction, and a censored lead-time cannot carry a grounded verdict.
+```{r oni-fit, eval = has_oni, echo = has_oni}
+oni <- read.csv(oni_path, stringsAsFactors = FALSE)$oni
 
-## References
+## A two-state local oscillator: a damped rotation captures the quasi-
+## periodic ENSO swing, observed through the index with measurement noise.
+dt_year <- 1 / 12
+angle <- 2 * pi * dt_year / 3.8
+rho <- 0.96
+rot <- rho * matrix(
+  c(cos(angle), -sin(angle), sin(angle), cos(angle)),
+  nrow = 2L, byrow = TRUE
+)
+oni_model <- ssm(
+  transition = rot,
+  observation = matrix(c(1, 0), nrow = 1L),
+  state_cov = diag(c(0.05, 0.05)),
+  obs_cov = 0.2,
+  init_state = c(oni[1L], 0),
+  init_cov = diag(c(1, 1))
+)
+oni_fit <- aci(oni_model, oni, dt = dt_year)
+oni_tracked <- cor(oni_fit@smoother@smoothed_mean[, 1L], oni)
+```
 
-Andreou, M., Chen, N. and Bollt, E. (2026). Assimilative causal inference.
-*Nature Communications*, 17, 1854.
+```{r oni-skip, eval = !has_oni, echo = FALSE, results = "asis"}
+cat("The NOAA ONI fixture is not reachable at the path this vignette",
+    "expects, so the real-index read-out is skipped; the model and result",
+    "are recorded in `tests/testthat/test-aci.R` instead.\n")
+```
 
-Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: A
-conceptual model. *Journal of the Atmospheric Sciences*, 54(7), 811--829.
+```{r oni-kable, echo = FALSE, eval = has_oni}
+knitr::kable(
+  data.frame(
+    quantity = c("smoother-to-index correlation", "decision lead-time (years)"),
+    value = round(c(oni_tracked, oni_fit@lead_time), 3)
+  ),
+  col.names = c("Quantity", "Value"),
+  caption = "ACI on the real NOAA ONI series, 1980 to 2020."
+)
+```
 
-Kalman, R. E. (1960). A new approach to linear filtering and prediction
-problems. *Journal of Basic Engineering*, 82(1), 35--45.
+Two things bound how far that figure should be pushed. The quadrature is
+evaluated at every lag in the window rather than at a dozen points, and
+warns when a grid the caller thins has not converged, so the number is not
+grid-dependent at the default. And an anchor whose future window runs past
+the end of the record is right-censored: its range is integrated over the
+lags the record supports and returned as a lower bound with `censored` set,
+rather than extrapolated. A rolling read-out near the end of a record is
+censored by construction, and a censored lead-time cannot carry a grounded
+verdict.
 
-Rauch, H. E., Tung, F. and Striebel, C. T. (1965). Maximum likelihood estimates
-of linear dynamic systems. *AIAA Journal*, 3(8), 1445--1450.
+## Read
+
+```{r read-prep, echo = FALSE}
+oni_sentence <- if (has_oni) {
+  sprintf(
+    paste(
+      "On the real NOAA ONI series the smoother tracks the observed",
+      "index at a correlation of %s, and the decision lead-time comes",
+      "out at %s years, the kind of sub-decadal predictability horizon",
+      "the ENSO literature reports."
+    ),
+    round(oni_tracked, 3), round(oni_fit@lead_time, 3)
+  )
+} else {
+  paste(
+    "The real-index section above explains why that read-out was",
+    "skipped on this build."
+  )
+}
+```
+
+On the simulated oscillator, the smoother recovers the hidden state at a
+correlation of `r round(recovery_cor, 3)` with the truth it never observes
+directly. The coupled system carries a mean causal information of
+`r round(fit@mean_causal_information, 4)` nats and a lead-time of
+`r round(fit@lead_time, 3)` years, while the null carries
+`r round(fit_null@mean_causal_information, 4)` nats and a lead-time of
+`r round(fit_null@lead_time, 3)`: the coupling is what the causal-information
+read-out is discriminating, not an artefact of the recursion.
+
+The abstention example carries `abstained@grounding` equal to
+`r sprintf("\x60%s\x60", abstained@grounding)`, with reason
+`r sprintf("\x60%s\x60", abstained@grounding_reason)`, because the frozen
+local level's innovations fail `innovation_diagnostics()`
+(`abstained@adequacy@adequate` is `r abstained@adequacy@adequate`). The
+returned object carries the classes
+`r paste(sprintf("\x60%s\x60", abstention_classes), collapse = ", ")`,
+so a caller elsewhere in the orchestra can recognise this as a structured
+refusal, `kalmix_abstention`, without parsing the grounding string. Passing
+the diagnostics is a different matter from having a verified mechanism: the
+same coupled model with no declared provenance carries grounding
+`r sprintf("\x60%s\x60", adequate_unverified)`, and only rises to
+`r sprintf("\x60%s\x60", adequate_grounded)` once a dated mechanism record
+is supplied. An adequate model is not thereby a verified one; the two
+chunks above show both halves of that distinction on the same model.
+
+The online and expanding engines agree on the coupled system to within
+`r formatC(abs(cir_online - cir_expanding), format = "e", digits = 1)`
+years, floating-point precision rather than a genuine numerical difference,
+confirming they implement the same smoother recursion. `r oni_sentence`
+
+## Limits
+
+Every read-out here is only as trustworthy as the state-space model behind
+it, and `aci()`'s adequacy check establishes self-consistency, not
+correspondence with the world: an adequate model that was never checked
+against an external authority stays labelled as unverified rather than
+grounded, exactly as shown above. The oscillator example is a known-truth
+system built to demonstrate the read-out, not a validated ENSO model, and
+the real-index section, while run on genuine public data, uses a
+deliberately simple damped-rotation model rather than a dynamical model
+fitted to the physical system. Under a Student-t observation family the
+filter pass is the outlier-robust variational update, whose per-step
+posteriors are Gaussian approximations; the causal information and
+lead-time then inherit that approximation rather than being exact. A
+regime-switching model compares the collapsed Gaussian posteriors of the
+Kim smoother and the GPB1 filter rather than the true mixtures, and its
+lead-time uses the expanding-window construction only, because the online
+recursion is linear-Gaussian only. The online and expanding engines
+agreeing on this vignette's models is evidence the smoother recursion is
+implemented consistently between them, not evidence that the underlying
+range functional matches the source paper; that grading is external, cited
+above and not recomputed here.
+
+## What to read next
+
+*Getting started: state-space models with kalmix* covers the
+`kalman_filter()` and `rts_smoother()` passes this vignette reads a
+divergence between. *Change-points and hidden states with kalmix* and
+*Pairs trading with kalmix* cover the discrete-state and regime-switching
+models an `aci()` call can also be given. *The Elliott-van der Hoek-Malcolm
+spread model with kalmix* shows the same `ssm_fit()` machinery this
+vignette's models were specified by hand instead of estimating.
+
+## Reproduce
+
+Seed `1` for the simulated oscillator; the real-index section draws no
+random numbers.
+
+```{r session-info}
+sessionInfo()
+```

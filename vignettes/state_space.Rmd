@@ -7,23 +7,48 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- Render time: ~1 s under rmarkdown::render(); macOS arm64 (Darwin
+     aarch64), R 4.5.2, one core. -->
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
-                      fig.height = 4)
+                      fig.height = 4.5, dpi = 150)
 set.seed(1)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 ```
 
-`kalmix` is a compact toolkit for state-space models. A state-space model
-describes a latent state that evolves over time and is seen only through noisy
-observations; the recursions in this package recover the state, smooth it given
-the whole series, detect regime switches and change-points, and read a causal
-contrast off a forecast. This vignette covers the linear-Gaussian core --
-the `ssm()` model, the `kalman_filter()`, and the `rts_smoother()`. The
+```{r library}
+library(kalmix)
+```
+
+## Why
+
+A soil-moisture probe in one paddock logs a noisy reading every day of the
+season. What is the moisture level actually doing underneath the sensor
+noise, and could a quantity that was never measured directly, such as how
+fast the level is changing, be read off that noisy trace alone? A state-space
+model answers exactly this: a latent state evolves on its own dynamics and is
+seen only through noisy observations, and the recursions in `kalmix` recover
+it. This vignette works the recipe on two synthetic soil-moisture and
+crop-water-use series, small enough to see the whole mechanism at once. The
 *Change-points and hidden states with kalmix* vignette covers discrete-state
 models, and *Pairs trading with kalmix* covers the mean-reverting-spread
-application.
+application built on the same machinery.
 
-## A linear-Gaussian state-space model
+## What
+
+[`ssm()`](../reference/ssm.html) builds a linear-Gaussian state-space model
+from its four system matrices and a prior on the initial state.
+[`kalman_filter()`](../reference/kalman_filter.html) runs the forward
+recursion of Kalman (1960): at each step it predicts the state forward and
+then corrects it with the new observation, conditioning only on the past.
+[`rts_smoother()`](../reference/rts_smoother.html) runs the backward pass of
+Rauch, Tung and Striebel (1965) over a completed filter, conditioning every
+state estimate on the whole series instead of the past alone.
+
+## Do
+
+### A linear-Gaussian state-space model
 
 The general model has a latent state $x_t$ that evolves through a transition
 matrix and Gaussian process noise, observed through an observation matrix and
@@ -32,13 +57,12 @@ Gaussian observation noise:
 $$x_t = A_t\, x_{t-1} + w_t, \qquad w_t \sim N(0, Q_t),$$
 $$y_t = B_t\, x_t + v_t, \qquad v_t \sim N(0, R_t).$$
 
-`ssm()` builds this from the four system matrices plus a prior on the initial
-state. The simplest case is the local level (a random walk seen through
-observation noise), which can be written with bare scalars:
+The simplest case is the local level (a random walk seen through observation
+noise), which can be written with bare scalars. We take it to represent a
+soil-moisture index that drifts slowly over a season, in arbitrary synthetic
+units:
 
 ```{r local-level}
-library(kalmix)
-
 model <- ssm(
   transition = 1, observation = 1,
   state_cov = 0.01, obs_cov = 1,
@@ -47,58 +71,100 @@ model <- ssm(
 model
 ```
 
-## Filtering: recovering the state online
+The print method above shows the model exactly as built: a one-dimensional
+state, unit transition and observation, and the process and observation
+noise variances that make the observation channel ten times noisier than
+the state's own drift.
 
-`kalman_filter()` runs the forward recursion of Kalman (1960). At each step it
-predicts the state forward and then corrects it with the new observation. We
-simulate a slowly-drifting level seen through noise, then recover it:
+### Filtering: recovering the state online
+
+We simulate a slowly-drifting soil-moisture index seen through instrument
+noise, then recover it with the forward recursion:
 
 ```{r filter}
-level <- cumsum(rnorm(150, sd = 0.1))
-y <- level + rnorm(150)
+moisture <- cumsum(rnorm(150, sd = 0.1))
+y <- moisture + rnorm(150)
 
 fit <- kalman_filter(model, y)
-fit
+rmse <- function(a, b) sqrt(mean((a - b)^2))
+rmse_filtered <- rmse(fit@filtered_mean[, 1], moisture)
 ```
 
-The filtered mean tracks the latent level far more closely than the raw
-observations do:
+### Smoothing: using the whole series
 
-```{r filter-plot, echo = FALSE, fig.cap = "The noisy observations (grey points), the true latent level (black line) and the Kalman-filtered estimate (blue line)."}
-plot(y, col = "grey70", pch = 16, cex = 0.6, xlab = "time", ylab = "value",
-     main = "Filtered state vs noisy observations")
-lines(level, col = "black", lwd = 2)
-lines(fit@filtered_mean[, 1], col = "steelblue", lwd = 2)
-legend("topleft", c("truth", "observed", "filtered"),
-       col = c("black", "grey70", "steelblue"),
-       lwd = c(2, NA, 2), pch = c(NA, 16, NA), bty = "n")
-```
-
-The blue filtered line sits much closer to the black truth than the raw grey
-observations do, recovering the latent level from noisy readings alone.
-
-## Smoothing: using the whole series
-
-The filter conditions only on the past. The Rauch-Tung-Striebel smoother
-(Rauch, Tung and Striebel, 1965) runs a backward pass to condition every state
-estimate on the whole series, which is strictly more informative:
+The filter conditions only on the past; the smoother adds the future, which
+is strictly more informative:
 
 ```{r smooth}
 smoothed <- rts_smoother(fit)
-
-rmse <- function(a, b) sqrt(mean((a - b)^2))
-c(filtered = rmse(fit@filtered_mean[, 1], level),
-  smoothed = rmse(smoothed@smoothed_mean[, 1], level))
+rmse_smoothed <- rmse(smoothed@smoothed_mean[, 1], moisture)
 ```
 
-The smoothed estimate has the lower error, as it must: it has seen the
-future as well as the past.
+```{r rmse-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    pass = c("filtered", "smoothed"),
+    rmse = round(c(rmse_filtered, rmse_smoothed), 3)
+  ),
+  col.names = c("Pass", "RMSE against the true moisture index"),
+  caption = "Root-mean-square error of each pass against the simulated truth."
+)
+```
 
-## A vector state
+```{r filter-plot, echo = has_ggplot2, eval = has_ggplot2, fig.cap = "The noisy daily readings (grey points) against the true soil-moisture index (dashed line), with the filtered and smoothed estimates and their 95 per cent bands."}
+band_data <- data.frame(
+  day = rep(seq_len(150), 2),
+  estimate = c(fit@filtered_mean[, 1], smoothed@smoothed_mean[, 1]),
+  se = c(
+    sqrt(vapply(fit@filtered_cov, function(p) p[1, 1], numeric(1))),
+    sqrt(vapply(smoothed@smoothed_cov, function(p) p[1, 1], numeric(1)))
+  ),
+  pass = rep(c("filtered", "smoothed"), each = 150)
+)
+band_data$lower <- band_data$estimate - 1.96 * band_data$se
+band_data$upper <- band_data$estimate + 1.96 * band_data$se
 
-The state can have more than one dimension. A constant-velocity model tracks a
-position and an unobserved velocity; only the position is measured. The model
-recovers the hidden velocity from the position series alone:
+obs_data <- data.frame(day = seq_len(150), observed = y, truth = moisture)
+
+ggplot2::ggplot() +
+  ggplot2::geom_point(
+    data = obs_data, ggplot2::aes(x = day, y = observed),
+    colour = "grey60", size = 0.8
+  ) +
+  ggplot2::geom_line(
+    data = obs_data, ggplot2::aes(x = day, y = truth),
+    linetype = "dashed", colour = "black", linewidth = 0.4
+  ) +
+  ggplot2::geom_ribbon(
+    data = band_data,
+    ggplot2::aes(x = day, ymin = lower, ymax = upper, fill = pass),
+    alpha = 0.22
+  ) +
+  ggplot2::geom_line(
+    data = band_data, ggplot2::aes(x = day, y = estimate, colour = pass),
+    linewidth = 0.7
+  ) +
+  ggplot2::scale_colour_viridis_d(name = "pass", end = 0.8) +
+  ggplot2::scale_fill_viridis_d(name = "pass", end = 0.8) +
+  ggplot2::labs(
+    x = "day of season", y = "soil-moisture index (synthetic units)",
+    title = "Filtered and smoothed soil-moisture estimate"
+  ) +
+  ggplot2::theme_minimal()
+```
+
+```{r filter-plot-skip, echo = FALSE, eval = !has_ggplot2, results = "asis"}
+cat("ggplot2 is not installed on this build, so the filtered-and-smoothed",
+    "figure is skipped.\n")
+```
+
+### A vector state
+
+The state can have more than one dimension. A constant-rate model tracks a
+cumulative quantity and an unobserved rate; here, cumulative crop water use
+and the unobserved daily water-use rate that drives it. Only the cumulative
+total is measured, and the model recovers the hidden rate from how that
+total changes:
 
 ```{r velocity}
 velocity_model <- ssm(
@@ -110,24 +176,71 @@ velocity_model <- ssm(
   init_cov = diag(c(10, 10))
 )
 
-truth_velocity <- 0.5
-position <- truth_velocity * seq_len(150) + rnorm(150)
-vfit <- kalman_filter(velocity_model, position)
-
-## recovered terminal velocity, against the true 0.5
-vfit@filtered_mean[150, 2]
+true_rate <- 0.5
+cum_use <- true_rate * seq_len(150) + rnorm(150)
+vfit <- kalman_filter(velocity_model, cum_use)
+recovered_rate <- vfit@filtered_mean[150, 2]
 ```
 
-The recovered velocity sits close to the true `0.5`, even though velocity was
-never observed: the model infers it from the rate of change of the position.
+```{r velocity-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    quantity = "daily water-use rate (mm/day, synthetic)",
+    truth = true_rate,
+    recovered = round(recovered_rate, 3)
+  ),
+  col.names = c("Quantity", "True rate", "Recovered rate at day 150"),
+  caption = paste(
+    "The unobserved rate recovered purely from the noisy cumulative",
+    "series."
+  )
+)
+```
 
-## References
+## Read
 
-Kalman, R. E. (1960). A new approach to linear filtering and prediction
-problems. *Journal of Basic Engineering*, 82(1), 35--45.
+The smoothed pass has the lower RMSE of the two (`r round(rmse_smoothed, 3)`
+against `r round(rmse_filtered, 3)` for the filter), as it must: it has seen
+the whole series rather than the past alone. The figure shows why the two
+differ visually as well as numerically: the blue-green filtered band sits
+close to the observations early in the record, before much of the series has
+arrived to correct it, while the smoothed band is narrower and tighter to the
+dashed truth line throughout, because every point on it has already seen the
+observations that come after it.
 
-Rauch, H. E., Tung, F. and Striebel, C. T. (1965). Maximum likelihood estimates
-of linear dynamic systems. *AIAA Journal*, 3(8), 1445--1450.
+In the vector-state example, the daily water-use rate was never observed;
+only the cumulative total was. The filter still recovers a rate of
+`r round(recovered_rate, 3)` mm/day at the end of the series against a true
+rate of `r true_rate` mm/day, inferred entirely from the curvature of the
+noisy cumulative trace.
 
-Durbin, J. and Koopman, S. J. (2012). *Time Series Analysis by State Space
-Methods*, 2nd ed. Oxford University Press.
+## Limits
+
+Both examples here are synthetic, chosen to keep the recursions fast and the
+truth known, not to represent a validated soil-moisture or water-use record.
+The system matrices are supplied by the caller and taken as given: this
+vignette does not check whether a model is an adequate description of the
+series it is applied to, nor does it estimate unknown noise levels from data,
+which `ssm_fit()` does (see *The Elliott-van der Hoek-Malcolm spread model
+with kalmix*). Every model shown here is linear-Gaussian and single-regime;
+a series that switches between discrete states or regimes needs the
+machinery in the next vignette. Grounding a causal claim against a model's
+own adequacy diagnostics, including the abstention a diagnostic failure
+produces, is shown in *Assimilative causal inference with kalmix*, not here.
+
+## What to read next
+
+*Change-points and hidden states with kalmix* moves from a continuously
+evolving state to abrupt shifts and discrete regimes. *Pairs trading with
+kalmix* applies this same filter-and-smoother machinery to a mean-reverting
+spread. *Assimilative causal inference with kalmix* reads a causal
+information rate off the filter and smoother built here, grounded through a
+model-adequacy check that can abstain.
+
+## Reproduce
+
+Seed `1` for both simulations.
+
+```{r session-info}
+sessionInfo()
+```
