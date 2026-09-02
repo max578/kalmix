@@ -47,6 +47,7 @@ Imports:
     cli
 Suggests:
     aciR,
+    ggplot2,
     kernR,
     mvtnorm,
     testthat (>= 3.1.5),

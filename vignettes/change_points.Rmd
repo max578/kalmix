@@ -7,89 +7,165 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- Render time: ~1 s under rmarkdown::render(); macOS arm64 (Darwin
+     aarch64), R 4.5.2, one core. -->
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
-                      fig.height = 4)
+                      fig.height = 4.5, dpi = 150)
 set.seed(1)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+```{r library}
 library(kalmix)
 ```
 
-Many series are not smooth: they switch abruptly between states or shift
-their mean at unknown times. `kalmix` handles three flavours of this:
-change-point detection for abrupt shifts in level, hidden Markov models for
-recurring discrete states, and the regime-switching mixture filter for series
-that switch between several linear-Gaussian dynamics. This vignette walks
-through the first two; the mixture filter is shown in *Pairs trading with
-kalmix*.
+## Why
 
-## Change-point detection
+A paddock's canopy-vigour index climbs across the season and then something
+changes: did the index really shift to a new level partway through, at an
+identifiable point in time, or is that just the ordinary wobble a flat
+series always produces on its own? And separately, if a pest-pressure index
+instead flips back and forth between a quiet background level and a
+flare-up, is that better read as a recurring pair of states than as a
+one-off shift? `kalmix` answers the first question with change-point
+detection and the second with a hidden Markov model; both are shown here on
+synthetic series built to isolate the mechanism. The regime-switching
+mixture filter, a third flavour of state that switches between several
+linear-Gaussian dynamics rather than two fixed emission levels, is shown in
+*Pairs trading with kalmix*.
 
-`detect_changepoint()` finds shifts in the mean of a sequence by binary
-segmentation (Scott and Knott, 1974) on the single-change-point
-likelihood-ratio statistic. At split $\tau$ of a length-$n$ segment the
-statistic is the drop in the Gaussian twice-negative-profile-log-likelihood
-between a one-mean and a two-mean fit,
+## What
+
+[`detect_changepoint()`](../reference/detect_changepoint.html) finds shifts
+in the mean of a sequence by binary segmentation on a likelihood-ratio
+statistic, returning a [`changepoint_fit`](../reference/changepoint_fit.html)
+of the split locations and the fitted segment means.
+[`hmm()`](../reference/hmm.html) builds a finite Markov chain over hidden
+states, each emitting a Gaussian observation.
+[`hmm_filter()`](../reference/hmm_filter.html) gives the smoothed state
+posteriors and the model log-likelihood, and
+[`hmm_viterbi()`](../reference/hmm_viterbi.html) returns the single most
+likely state path, jointly optimal over the whole series rather than
+step-by-step.
+
+## Do
+
+### Change-point detection
+
+At split $\tau$ of a length-$n$ segment, `detect_changepoint()`'s statistic
+is the drop in the Gaussian twice-negative-profile-log-likelihood between a
+one-mean and a two-mean fit,
 
 $$n \log \hat\sigma^2_{1:n} - \tau \log \hat\sigma^2_{1:\tau} -
   (n - \tau) \log \hat\sigma^2_{\tau+1:n},$$
 
 with the variance estimated within each candidate segment; the split
 location that maximises this statistic is the candidate change-point, kept
-only when the statistic clears a penalty. We simulate a series with two
-known shifts, at index 50 and index 100, and recover them:
+only when the statistic clears a penalty (Scott and Knott, 1974). We
+simulate a canopy-vigour index with two known shifts, a lift at index 50 and
+a partial decline at index 100, and recover them:
 
 ```{r changepoint}
-x <- c(rnorm(50, mean = 0), rnorm(50, mean = 4), rnorm(50, mean = 1))
-cp <- detect_changepoint(x)
+vigour <- c(rnorm(50, mean = 0), rnorm(50, mean = 4), rnorm(50, mean = 1))
+cp <- detect_changepoint(vigour)
 cp
 ```
 
-```{r changepoint-plot, echo = FALSE, fig.cap = "Detected change-points (blue dashed lines) against the simulated series, with the fitted segment means (red) overlaid."}
-plot(x, col = "grey60", pch = 16, cex = 0.6, xlab = "time", ylab = "value",
-     main = "Detected change-points")
-bounds <- c(0, cp@changepoints, length(x))
-for (i in seq_along(cp@segment_means)) {
-  segments(bounds[i] + 1, cp@segment_means[i], bounds[i + 1],
-           cp@segment_means[i], col = "firebrick", lwd = 2)
-}
-abline(v = cp@changepoints + 0.5, lty = 2, col = "steelblue")
+```{r changepoint-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    segment = seq_along(cp@segment_means),
+    fitted_mean = round(cp@segment_means, 3)
+  ),
+  col.names = c("Segment", "Fitted mean"),
+  caption = "The fitted mean of each segment `detect_changepoint()` recovered."
+)
 ```
 
-The detector places its change-points within a couple of indices of the truth
-and recovers the three segment means.
+```{r changepoint-plot, echo = has_ggplot2, eval = has_ggplot2, fig.cap = "The simulated canopy-vigour index (grey points), the fitted segment means (solid line) and the detected change-points (dashed lines)."}
+bounds <- c(0, cp@changepoints, length(vigour))
+seg_data <- data.frame(
+  xstart = bounds[-length(bounds)] + 1,
+  xend = bounds[-1],
+  fitted_mean = cp@segment_means
+)
+point_data <- data.frame(index = seq_along(vigour), vigour = vigour)
+cp_data <- data.frame(index = cp@changepoints + 0.5)
+
+ggplot2::ggplot() +
+  ggplot2::geom_point(
+    data = point_data, ggplot2::aes(x = index, y = vigour),
+    colour = "grey55", size = 0.9
+  ) +
+  ggplot2::geom_segment(
+    data = seg_data,
+    ggplot2::aes(x = xstart, xend = xend, y = fitted_mean, yend = fitted_mean),
+    colour = "#1B9E77", linewidth = 1
+  ) +
+  ggplot2::geom_vline(
+    data = cp_data, ggplot2::aes(xintercept = index),
+    linetype = "dashed", colour = "#7570B3"
+  ) +
+  ggplot2::labs(
+    x = "day of season", y = "canopy-vigour index (synthetic units)",
+    title = "Detected change-points in a synthetic vigour index"
+  ) +
+  ggplot2::theme_minimal()
+```
+
+```{r changepoint-plot-skip, echo = FALSE, eval = !has_ggplot2, results = "asis"}
+cat("ggplot2 is not installed on this build, so the change-point figure is",
+    "skipped.\n")
+```
 
 ### The penalty controls over-segmentation
 
-The hard part of change-point detection is not finding a split. It is
+The hard part of change-point detection is not finding a split; it is
 deciding when *not* to. On a single homogeneous segment the best available
-split still improves the fit by chance, so an unpenalised search would shatter
-a flat series into spurious pieces. `detect_changepoint()` guards against this
-with a penalty that a split must clear. The default `"mbic"` penalty is
-calibrated so a genuinely homogeneous series is left whole:
+split still improves the fit by chance, so an unpenalised search would
+shatter a flat series into spurious pieces. `detect_changepoint()` guards
+against this with a penalty a split must clear. The default `"mbic"`
+penalty is calibrated so a genuinely flat index is left whole:
 
 ```{r changepoint-null}
 flat <- rnorm(200)
-detect_changepoint(flat)@changepoints
+n_flat_cp <- length(detect_changepoint(flat)@changepoints)
 ```
 
 A weaker penalty is available for callers who want more sensitivity, at the
-cost of more false positives:
+cost of more false positives, on a subtler shift than the one simulated
+above:
 
 ```{r changepoint-penalty}
 subtle <- c(rnorm(60, 0), rnorm(60, 1.2), rnorm(60, 0))
-c(mbic = length(detect_changepoint(subtle, penalty = "mbic")@changepoints),
-  sic  = length(detect_changepoint(subtle, penalty = "sic")@changepoints))
+n_mbic <- length(detect_changepoint(subtle, penalty = "mbic")@changepoints)
+n_sic <- length(detect_changepoint(subtle, penalty = "sic")@changepoints)
 ```
 
-## Hidden Markov models
+```{r penalty-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    series = c("flat (no shift)", "subtle (1.2-SD shift, twice)"),
+    mbic = c(n_flat_cp, n_mbic),
+    sic = c(NA_integer_, n_sic)
+  ),
+  col.names = c("Series", "Change-points (mbic)", "Change-points (sic)"),
+  caption = paste(
+    "How many change-points each penalty reports on a flat and a",
+    "subtly-shifted series."
+  )
+)
+```
 
-A hidden Markov model is the discrete-state cousin of the state-space model: a
-finite Markov chain over hidden states, each emitting a Gaussian observation.
-`hmm()` builds the model, `hmm_filter()` gives the state posteriors, and
-`hmm_viterbi()` returns the single most likely state path.
+### Hidden Markov models
 
-We build a two-state mean-shift model (a low state near `0` and a high state
-near `4`) and simulate from it:
+A hidden Markov model is the discrete-state cousin of the state-space model:
+a finite Markov chain over hidden states, each emitting a Gaussian
+observation. We build a two-state pest-pressure model, a quiet background
+state near `0` and a flare-up state near `4`, and simulate a season in which
+pressure flares for a central block:
 
 ```{r hmm-build}
 model <- hmm(
@@ -103,46 +179,120 @@ true_state <- c(rep(1L, 60), rep(2L, 60), rep(1L, 60))
 y <- rnorm(180, mean = c(0, 4)[true_state], sd = 1)
 ```
 
-The smoothed posterior and the Viterbi path both recover the hidden state with
-near-perfect accuracy for these well-separated states:
+The smoothed posterior and the Viterbi path both recover the hidden pressure
+state:
 
 ```{r hmm-recover}
 fit <- hmm_filter(model, y)
 path <- hmm_viterbi(model, y)
-
-c(smoothed_accuracy = mean(fit@state_path == true_state),
-  viterbi_accuracy  = mean(path == true_state))
+acc_smoothed <- mean(fit@state_path == true_state)
+acc_viterbi <- mean(path == true_state)
 ```
 
-```{r hmm-plot, echo = FALSE, fig.cap = "Observations coloured by their true hidden state (grey = low, red = high), with the smoothed posterior probability of the high state overlaid."}
-plot(y, col = c("grey70", "firebrick")[true_state], pch = 16, cex = 0.6,
-     xlab = "time", ylab = "observation",
-     main = "HMM: smoothed posterior of the high state")
-par(new = TRUE)
-plot(fit@smoothed[, 2], type = "l", col = "steelblue", lwd = 2,
-     axes = FALSE, xlab = "", ylab = "", ylim = c(0, 1))
-axis(4)
-mtext("P(high state)", side = 4, line = 2)
+```{r hmm-kable, echo = FALSE}
+knitr::kable(
+  data.frame(
+    readout = c("smoothed mode", "Viterbi path"),
+    accuracy = round(c(acc_smoothed, acc_viterbi), 3)
+  ),
+  col.names = c("Read-out", "Accuracy against the true state"),
+  caption = paste(
+    "Agreement of each state read-out with the simulated true pressure",
+    "state."
+  )
+)
 ```
 
-The smoothed posterior (blue) rises to near one over the central high-state
-block and falls back to near zero on either side. The difference between the
-two read-outs is subtle but real: the Viterbi path is *jointly* optimal, the
-single most likely sequence, while the smoothed mode is optimal at each step
-taken on its own.
+```{r hmm-plot, echo = has_ggplot2, eval = has_ggplot2, fig.cap = "Observations (points, coloured by true hidden state) with the smoothed posterior probability of the flare-up state (line, right-hand axis)."}
+range_y <- range(y)
+span_y <- diff(range_y)
+post_high <- fit@smoothed[, 2]
+post_scaled <- post_high * span_y + min(range_y)
 
-## References
+hmm_data <- data.frame(
+  day = seq_along(y), y = y,
+  state = factor(c("background", "flare-up")[true_state],
+                 levels = c("background", "flare-up")),
+  posterior = post_scaled
+)
 
-Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected
-applications in speech recognition. *Proceedings of the IEEE*, 77(2),
-257--286.
+ggplot2::ggplot(hmm_data, ggplot2::aes(x = day)) +
+  ggplot2::geom_point(ggplot2::aes(y = y, colour = state), size = 1) +
+  ggplot2::geom_line(ggplot2::aes(y = posterior), colour = "black",
+                      linewidth = 0.6) +
+  ggplot2::scale_colour_viridis_d(name = "true state", end = 0.8) +
+  ggplot2::scale_y_continuous(
+    name = "pest-pressure index (synthetic units)",
+    sec.axis = ggplot2::sec_axis(
+      ~ (. - min(range_y)) / span_y, name = "P(flare-up state)"
+    )
+  ) +
+  ggplot2::labs(x = "day of season",
+                title = "HMM: smoothed posterior of the flare-up state") +
+  ggplot2::theme_minimal()
+```
 
-Scott, A. J. and Knott, M. (1974). A cluster analysis method for grouping
-means in the analysis of variance. *Biometrics*, 30(3), 507--512. (The
-binary-segmentation method `detect_changepoint()` implements.)
+```{r hmm-plot-skip, echo = FALSE, eval = !has_ggplot2, results = "asis"}
+cat("ggplot2 is not installed on this build, so the HMM posterior figure is",
+    "skipped.\n")
+```
 
-Killick, R., Fearnhead, P. and Eckley, I. A. (2012). Optimal detection of
-changepoints with a linear computational cost. *Journal of the American
-Statistical Association*, 107(500), 1590--1598. (See also, for the
-linear-cost PELT alternative to the quadratic-cost binary segmentation used
-here.)
+## Read
+
+`detect_changepoint()` placed `r length(cp@changepoints)` change-points on
+the simulated vigour index, at indices
+`r paste(cp@changepoints, collapse = " and ")`, close to the true shift
+locations of 50 and 100, and recovered three segment means that step from
+low to high and back down again, shown in the table above and visible in
+the figure as the solid fitted line jumping at each dashed change-point.
+On a genuinely flat series the default `"mbic"` penalty reports
+`r n_flat_cp` change-points; on the subtler 1.2-standard-deviation shift the
+weaker `"sic"` penalty finds `r n_sic` against `r n_mbic` for `"mbic"`,
+which is the direct cost of the extra sensitivity: fewer missed shifts, more
+willingness to call one.
+
+Both hidden-Markov-model read-outs recover the true pressure state with
+`r sprintf("%.1f", 100 * acc_smoothed)` per cent (smoothed mode) and
+`r sprintf("%.1f", 100 * acc_viterbi)` per cent (Viterbi path) accuracy on
+these well-separated states. The figure makes the difference between the two
+read-outs visible rather than just numeric: the black posterior line rises
+towards one only within the flare-up block and returns to near zero either
+side of it, tracking the coloured points closely, while the Viterbi path
+(not itself plotted, being a hard assignment rather than a probability) is
+the single state sequence that is jointly most likely, not merely the state
+that is individually most likely at each step.
+
+## Limits
+
+Every series in this vignette is synthetic and built to make its own
+mechanism visible: the segments and states are well separated by
+construction, which favours both methods more than a real canopy or pest
+record generally would. `detect_changepoint()` assumes Gaussian segments of
+constant variance; a shift in variance rather than mean, or a genuinely
+non-Gaussian series, is outside what the statistic tests. The hidden Markov
+model here has two states with dynamics and emission parameters fixed by
+the caller rather than estimated from data (`hmm_fit()` covers estimation
+and is not exercised in this vignette); a real pest or disease record would
+need that fitting step, and its number of states would itself be a modelling
+choice this vignette does not address. Neither method here carries the
+model-adequacy grounding that `aci()` attaches to its causal read-out; that
+machinery, including the abstention it produces on a genuinely inadequate
+model, is shown in *Assimilative causal inference with kalmix*.
+
+## What to read next
+
+*Getting started: state-space models with kalmix* covers the continuously
+evolving linear-Gaussian state these discrete-state models sit alongside.
+*Pairs trading with kalmix* shows the third flavour of discrete structure,
+the regime-switching mixture filter, applied to a mean-reverting spread.
+*Assimilative causal inference with kalmix* grounds a causal read-out
+against a model-adequacy check that can abstain, which neither method here
+performs.
+
+## Reproduce
+
+Seed `1` for every simulation in this vignette.
+
+```{r session-info}
+sessionInfo()
+```
