@@ -14,13 +14,20 @@ reference:
   - rts_smoother
   - kalman_fit
   - rts_fit
+  - ssm_fit
+  - ssm_mle
+  - estimate_obs_df
+  - innovation_diagnostics
+  - innov_diag
 
 - title: Regime switching
   desc: >
     Filter a series that switches between several linear-Gaussian regimes.
   contents:
   - mixture_filter
+  - mixture_smoother
   - regime_fit
+  - regime_smooth
 
 - title: Hidden Markov models
   desc: >
@@ -67,3 +74,4 @@ articles:
   - change_points
   - assimilative_causal_inference
   - pairs_trading
+  - elliott_spread_model
