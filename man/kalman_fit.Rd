@@ -48,16 +48,16 @@ covariances are retained because the log-likelihood and the
 interrupted-time-series contrast are read off them.
 }
 \seealso{
-Other state-space: 
-\code{\link{kalman_filter}()},
-\code{\link{mixture_filter}()},
-\code{\link{mixture_smoother}()},
-\code{\link{regime_fit}()},
-\code{\link{regime_smooth}()},
-\code{\link{rts_fit}()},
-\code{\link{rts_smoother}()},
-\code{\link{ssm}()},
-\code{\link{ssm_fit}()},
-\code{\link{ssm_mle}()}
+Other state-space:
+\code{\link[=kalman_filter]{kalman_filter()}},
+\code{\link[=mixture_filter]{mixture_filter()}},
+\code{\link[=mixture_smoother]{mixture_smoother()}},
+\code{\link[=regime_fit]{regime_fit()}},
+\code{\link[=regime_smooth]{regime_smooth()}},
+\code{\link[=rts_fit]{rts_fit()}},
+\code{\link[=rts_smoother]{rts_smoother()}},
+\code{\link[=ssm]{ssm()}},
+\code{\link[=ssm_fit]{ssm_fit()}},
+\code{\link[=ssm_mle]{ssm_mle()}}
 }
 \concept{state-space}

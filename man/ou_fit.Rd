@@ -34,7 +34,7 @@ x <- as.numeric(stats::arima.sim(list(ar = 0.85), n = 800))
 ou_fit(x)
 }
 \seealso{
-Other spread: 
-\code{\link{spread_series}()}
+Other spread:
+\code{\link[=spread_series]{spread_series()}}
 }
 \concept{spread}

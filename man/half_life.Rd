@@ -21,7 +21,7 @@ x <- as.numeric(stats::arima.sim(list(ar = 0.8), n = 500))
 half_life(ou_fit(x))
 }
 \seealso{
-Other classes: 
-\code{\link{spread_model}()}
+Other classes:
+\code{\link[=spread_model]{spread_model()}}
 }
 \concept{classes}

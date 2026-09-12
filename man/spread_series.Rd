@@ -33,7 +33,7 @@ s <- spread_series(a, b)
 attr(s, "hedge_ratio")
 }
 \seealso{
-Other spread: 
-\code{\link{ou_fit}()}
+Other spread:
+\code{\link[=ou_fit]{ou_fit()}}
 }
 \concept{spread}

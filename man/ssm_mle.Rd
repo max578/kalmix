@@ -44,16 +44,16 @@ estimates and standard errors of the estimated entries, and the optimiser
 diagnostics.
 }
 \seealso{
-Other state-space: 
-\code{\link{kalman_filter}()},
-\code{\link{kalman_fit}()},
-\code{\link{mixture_filter}()},
-\code{\link{mixture_smoother}()},
-\code{\link{regime_fit}()},
-\code{\link{regime_smooth}()},
-\code{\link{rts_fit}()},
-\code{\link{rts_smoother}()},
-\code{\link{ssm}()},
-\code{\link{ssm_fit}()}
+Other state-space:
+\code{\link[=kalman_filter]{kalman_filter()}},
+\code{\link[=kalman_fit]{kalman_fit()}},
+\code{\link[=mixture_filter]{mixture_filter()}},
+\code{\link[=mixture_smoother]{mixture_smoother()}},
+\code{\link[=regime_fit]{regime_fit()}},
+\code{\link[=regime_smooth]{regime_smooth()}},
+\code{\link[=rts_fit]{rts_fit()}},
+\code{\link[=rts_smoother]{rts_smoother()}},
+\code{\link[=ssm]{ssm()}},
+\code{\link[=ssm_fit]{ssm_fit()}}
 }
 \concept{state-space}

@@ -35,7 +35,7 @@ change-point locations, the per-segment means, and the penalised criterion
 the search used.
 }
 \seealso{
-Other change-point: 
-\code{\link{detect_changepoint}()}
+Other change-point:
+\code{\link[=detect_changepoint]{detect_changepoint()}}
 }
 \concept{change-point}

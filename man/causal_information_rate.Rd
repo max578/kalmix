@@ -162,13 +162,13 @@ Andreou, M., Chen, N. and Bollt, E. (2026). Assimilative causal inference.
 \seealso{
 \code{\link[=aci]{aci()}}.
 
-Other causal: 
-\code{\link{aci}()},
-\code{\link{aci_fit}()},
-\code{\link{estimate_obs_df}()},
-\code{\link{innov_diag}()},
-\code{\link{innovation_diagnostics}()},
-\code{\link{its_causal}()},
-\code{\link{its_fit}()}
+Other causal:
+\code{\link[=aci]{aci()}},
+\code{\link[=aci_fit]{aci_fit()}},
+\code{\link[=estimate_obs_df]{estimate_obs_df()}},
+\code{\link[=innov_diag]{innov_diag()}},
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}},
+\code{\link[=its_causal]{its_causal()}},
+\code{\link[=its_fit]{its_fit()}}
 }
 \concept{causal}

@@ -84,13 +84,13 @@ state. It is non-negative and zero only where the future is uninformative
 about the state at \code{t}.
 }
 \seealso{
-Other causal: 
-\code{\link{aci}()},
-\code{\link{causal_information_rate}()},
-\code{\link{estimate_obs_df}()},
-\code{\link{innov_diag}()},
-\code{\link{innovation_diagnostics}()},
-\code{\link{its_causal}()},
-\code{\link{its_fit}()}
+Other causal:
+\code{\link[=aci]{aci()}},
+\code{\link[=causal_information_rate]{causal_information_rate()}},
+\code{\link[=estimate_obs_df]{estimate_obs_df()}},
+\code{\link[=innov_diag]{innov_diag()}},
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}},
+\code{\link[=its_causal]{its_causal()}},
+\code{\link[=its_fit]{its_fit()}}
 }
 \concept{causal}

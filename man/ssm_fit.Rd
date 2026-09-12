@@ -88,16 +88,16 @@ Methods}. 2nd ed. Oxford University Press.
 \code{\link[=kalman_filter]{kalman_filter()}} for the likelihood; \code{\link[=estimate_obs_df]{estimate_obs_df()}} for the
 Student-t degrees of freedom; \code{\link[=ssm]{ssm()}} for the template.
 
-Other state-space: 
-\code{\link{kalman_filter}()},
-\code{\link{kalman_fit}()},
-\code{\link{mixture_filter}()},
-\code{\link{mixture_smoother}()},
-\code{\link{regime_fit}()},
-\code{\link{regime_smooth}()},
-\code{\link{rts_fit}()},
-\code{\link{rts_smoother}()},
-\code{\link{ssm}()},
-\code{\link{ssm_mle}()}
+Other state-space:
+\code{\link[=kalman_filter]{kalman_filter()}},
+\code{\link[=kalman_fit]{kalman_fit()}},
+\code{\link[=mixture_filter]{mixture_filter()}},
+\code{\link[=mixture_smoother]{mixture_smoother()}},
+\code{\link[=regime_fit]{regime_fit()}},
+\code{\link[=regime_smooth]{regime_smooth()}},
+\code{\link[=rts_fit]{rts_fit()}},
+\code{\link[=rts_smoother]{rts_smoother()}},
+\code{\link[=ssm]{ssm()}},
+\code{\link[=ssm_mle]{ssm_mle()}}
 }
 \concept{state-space}

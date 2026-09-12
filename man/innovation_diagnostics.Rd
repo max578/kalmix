@@ -68,13 +68,13 @@ homoscedasticity and serial independence of regression residuals.
 \seealso{
 \code{\link[=aci]{aci()}}, which calls this to ground its causal verdict.
 
-Other causal: 
-\code{\link{aci}()},
-\code{\link{aci_fit}()},
-\code{\link{causal_information_rate}()},
-\code{\link{estimate_obs_df}()},
-\code{\link{innov_diag}()},
-\code{\link{its_causal}()},
-\code{\link{its_fit}()}
+Other causal:
+\code{\link[=aci]{aci()}},
+\code{\link[=aci_fit]{aci_fit()}},
+\code{\link[=causal_information_rate]{causal_information_rate()}},
+\code{\link[=estimate_obs_df]{estimate_obs_df()}},
+\code{\link[=innov_diag]{innov_diag()}},
+\code{\link[=its_causal]{its_causal()}},
+\code{\link[=its_fit]{its_fit()}}
 }
 \concept{causal}

@@ -45,9 +45,9 @@ model
 \seealso{
 \code{\link[=hmm_filter]{hmm_filter()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}}.
 
-Other hidden-markov: 
-\code{\link{hmm_filter}()},
-\code{\link{hmm_fit}()},
-\code{\link{hmm_viterbi}()}
+Other hidden-markov:
+\code{\link[=hmm_filter]{hmm_filter()}},
+\code{\link[=hmm_fit]{hmm_fit()}},
+\code{\link[=hmm_viterbi]{hmm_viterbi()}}
 }
 \concept{hidden-markov}

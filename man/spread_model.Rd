@@ -51,7 +51,7 @@ x <- as.numeric(stats::arima.sim(list(ar = 0.8), n = 500))
 ou_fit(x)
 }
 \seealso{
-Other classes: 
-\code{\link{half_life}()}
+Other classes:
+\code{\link[=half_life]{half_life()}}
 }
 \concept{classes}

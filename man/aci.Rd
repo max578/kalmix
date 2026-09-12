@@ -160,13 +160,13 @@ estimates of linear dynamic systems. \emph{AIAA Journal}, 3(8), 1445--1450.
 \code{\link[=causal_information_rate]{causal_information_rate()}} for the lead-time alone;
 \code{\link[=kalman_filter]{kalman_filter()}} and \code{\link[=rts_smoother]{rts_smoother()}} for the underlying passes.
 
-Other causal: 
-\code{\link{aci_fit}()},
-\code{\link{causal_information_rate}()},
-\code{\link{estimate_obs_df}()},
-\code{\link{innov_diag}()},
-\code{\link{innovation_diagnostics}()},
-\code{\link{its_causal}()},
-\code{\link{its_fit}()}
+Other causal:
+\code{\link[=aci_fit]{aci_fit()}},
+\code{\link[=causal_information_rate]{causal_information_rate()}},
+\code{\link[=estimate_obs_df]{estimate_obs_df()}},
+\code{\link[=innov_diag]{innov_diag()}},
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}},
+\code{\link[=its_causal]{its_causal()}},
+\code{\link[=its_fit]{its_fit()}}
 }
 \concept{causal}

@@ -60,16 +60,16 @@ Applications to Tracking and Navigation}. Wiley. (GPB and IMM filters.)
 \code{\link[=kalman_filter]{kalman_filter()}} for the single-regime base case; \code{\link[=kalmix_filter]{kalmix_filter()}}
 for the pairs-trading wrapper.
 
-Other state-space: 
-\code{\link{kalman_filter}()},
-\code{\link{kalman_fit}()},
-\code{\link{mixture_smoother}()},
-\code{\link{regime_fit}()},
-\code{\link{regime_smooth}()},
-\code{\link{rts_fit}()},
-\code{\link{rts_smoother}()},
-\code{\link{ssm}()},
-\code{\link{ssm_fit}()},
-\code{\link{ssm_mle}()}
+Other state-space:
+\code{\link[=kalman_filter]{kalman_filter()}},
+\code{\link[=kalman_fit]{kalman_fit()}},
+\code{\link[=mixture_smoother]{mixture_smoother()}},
+\code{\link[=regime_fit]{regime_fit()}},
+\code{\link[=regime_smooth]{regime_smooth()}},
+\code{\link[=rts_fit]{rts_fit()}},
+\code{\link[=rts_smoother]{rts_smoother()}},
+\code{\link[=ssm]{ssm()}},
+\code{\link[=ssm_fit]{ssm_fit()}},
+\code{\link[=ssm_mle]{ssm_mle()}}
 }
 \concept{state-space}

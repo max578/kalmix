@@ -70,13 +70,13 @@ tailed process and measurement noise. \emph{ICASSP}, 5770--5774.
 \code{\link[=ssm]{ssm()}} for building the chosen model; \code{\link[=aci]{aci()}} for the causal
 read-out the chosen family grounds.
 
-Other causal: 
-\code{\link{aci}()},
-\code{\link{aci_fit}()},
-\code{\link{causal_information_rate}()},
-\code{\link{innov_diag}()},
-\code{\link{innovation_diagnostics}()},
-\code{\link{its_causal}()},
-\code{\link{its_fit}()}
+Other causal:
+\code{\link[=aci]{aci()}},
+\code{\link[=aci_fit]{aci_fit()}},
+\code{\link[=causal_information_rate]{causal_information_rate()}},
+\code{\link[=innov_diag]{innov_diag()}},
+\code{\link[=innovation_diagnostics]{innovation_diagnostics()}},
+\code{\link[=its_causal]{its_causal()}},
+\code{\link[=its_fit]{its_fit()}}
 }
 \concept{causal}

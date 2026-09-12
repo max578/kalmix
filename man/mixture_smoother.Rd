@@ -61,16 +61,16 @@ Kim, C.-J. (1994). Dynamic linear models with Markov-switching.
 \code{\link[=mixture_filter]{mixture_filter()}} for the forward pass; \code{\link[=rts_smoother]{rts_smoother()}} for
 the single-regime smoother.
 
-Other state-space: 
-\code{\link{kalman_filter}()},
-\code{\link{kalman_fit}()},
-\code{\link{mixture_filter}()},
-\code{\link{regime_fit}()},
-\code{\link{regime_smooth}()},
-\code{\link{rts_fit}()},
-\code{\link{rts_smoother}()},
-\code{\link{ssm}()},
-\code{\link{ssm_fit}()},
-\code{\link{ssm_mle}()}
+Other state-space:
+\code{\link[=kalman_filter]{kalman_filter()}},
+\code{\link[=kalman_fit]{kalman_fit()}},
+\code{\link[=mixture_filter]{mixture_filter()}},
+\code{\link[=regime_fit]{regime_fit()}},
+\code{\link[=regime_smooth]{regime_smooth()}},
+\code{\link[=rts_fit]{rts_fit()}},
+\code{\link[=rts_smoother]{rts_smoother()}},
+\code{\link[=ssm]{ssm()}},
+\code{\link[=ssm_fit]{ssm_fit()}},
+\code{\link[=ssm_mle]{ssm_mle()}}
 }
 \concept{state-space}

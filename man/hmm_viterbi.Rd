@@ -40,9 +40,9 @@ Theory}, 13(2), 260--269.
 \seealso{
 \code{\link[=hmm_filter]{hmm_filter()}}.
 
-Other hidden-markov: 
-\code{\link{hmm}()},
-\code{\link{hmm_filter}()},
-\code{\link{hmm_fit}()}
+Other hidden-markov:
+\code{\link[=hmm]{hmm()}},
+\code{\link[=hmm_filter]{hmm_filter()}},
+\code{\link[=hmm_fit]{hmm_fit()}}
 }
 \concept{hidden-markov}

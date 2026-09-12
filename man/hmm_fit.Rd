@@ -32,9 +32,9 @@ state posteriors, the smoothed most-likely state at each step, and the model
 log-likelihood.
 }
 \seealso{
-Other hidden-markov: 
-\code{\link{hmm}()},
-\code{\link{hmm_filter}()},
-\code{\link{hmm_viterbi}()}
+Other hidden-markov:
+\code{\link[=hmm]{hmm()}},
+\code{\link[=hmm_filter]{hmm_filter()}},
+\code{\link[=hmm_viterbi]{hmm_viterbi()}}
 }
 \concept{hidden-markov}

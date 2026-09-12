@@ -21,6 +21,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Max Moldovan \email{max.moldovan@gmail.com} (\href{https://orcid.org/0000-0001-9680-8474}{ORCID})
   \item Johannes van der Hoek (Co-developer; foundational mean-reverting spread model in Elliott, van der Hoek & Malcolm (2005).)
 }
 

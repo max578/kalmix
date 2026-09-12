@@ -70,7 +70,7 @@ strengthening the per-split penalty; the \code{"mbic"} value here is an
 empirically calibrated \eqn{3\log(n)}, not their functional.)
 }
 \seealso{
-Other change-point: 
-\code{\link{changepoint_fit}()}
+Other change-point:
+\code{\link[=changepoint_fit]{changepoint_fit()}}
 }
 \concept{change-point}

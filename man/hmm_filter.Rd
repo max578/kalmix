@@ -40,9 +40,9 @@ applications in speech recognition. \emph{Proceedings of the IEEE}, 77(2),
 \seealso{
 \code{\link[=hmm_viterbi]{hmm_viterbi()}} for the most likely path.
 
-Other hidden-markov: 
-\code{\link{hmm}()},
-\code{\link{hmm_fit}()},
-\code{\link{hmm_viterbi}()}
+Other hidden-markov:
+\code{\link[=hmm]{hmm()}},
+\code{\link[=hmm_fit]{hmm_fit()}},
+\code{\link[=hmm_viterbi]{hmm_viterbi()}}
 }
 \concept{hidden-markov}
