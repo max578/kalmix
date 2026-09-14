@@ -54,6 +54,8 @@ Suggests:
     withr,
     knitr,
     rmarkdown
+Remotes:
+    max578/kernR
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
