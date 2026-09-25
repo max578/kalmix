@@ -56,12 +56,14 @@ jobs:
       # reference. It is public and not on CRAN, so it is installed from
       # GitHub rather than dropped; without it the conformance suite skips and
       # the grade is not run in the clean room, which is the gap this job
-      # exists to close.
+      # exists to close. biometryhub/ACI replaced aciR with the acir package
+      # (a different API) on 2026-08-28, so the install is pinned to the last
+      # commit that carries aciR 0.2.3, the version the suite is written for.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
             any::rcmdcheck
-            github::biometryhub/ACI/aciR
+            github::biometryhub/ACI/aciR@de950a2c511c38e9a4642d88cf4783f150384bd1
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2

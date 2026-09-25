@@ -55,7 +55,8 @@ Suggests:
     knitr,
     rmarkdown
 Remotes:
-    max578/kernR
+    max578/kernR,
+    biometryhub/ACI/aciR@de950a2c511c38e9a4642d88cf4783f150384bd1
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
