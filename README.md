@@ -64,6 +64,17 @@ Finance 5(3), 271-276. The package is developed with Johannes van der Hoek.
 The assimilative-causal-inference path follows Andreou, Chen and Bollt (2026),
 *Assimilative causal inference*, Nature Communications 17, 1854.
 
+## Contributing
+
+Bug reports and suggestions are welcome as
+[GitHub issues](https://github.com/max578/kalmix/issues).
+
+## Citation
+
+```r
+citation("kalmix")
+```
+
 ## Licence
 
 MIT. See `LICENSE`.

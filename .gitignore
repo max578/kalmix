@@ -13,3 +13,6 @@ Meta
 *.tar.gz
 *.Rcheck
 docs
+.claude/
+.positai/
+.cursor/
