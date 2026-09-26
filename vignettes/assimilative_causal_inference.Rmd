@@ -282,9 +282,9 @@ smoother recursion is implemented consistently between them: they share the
 quadrature and the reduction, so their agreement is not evidence about the
 range functional itself. That functional is graded separately, in the
 package's own conformance suite (`tests/testthat/test-cir-conformance.R`),
-which reduces `aciR`'s own divergence profile with `kalmix`'s reducer and
+which reduces `acir`'s own divergence profile with `kalmix`'s reducer and
 requires the objective and subjective ranges of Andreou, Chen and Bollt
-(2026) to come back; `aciR` is in turn graded cell-by-cell against the
+(2026) to come back; `acir` is in turn graded cell-by-cell against the
 method authors' MATLAB reference. That chain, back to the authors' own
 code, is what makes it an oracle here, and it is not recomputed in this
 vignette.

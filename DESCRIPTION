@@ -46,7 +46,7 @@ Imports:
     stats,
     cli
 Suggests:
-    aciR,
+    acir,
     ggplot2,
     kernR,
     mvtnorm,
@@ -56,7 +56,7 @@ Suggests:
     rmarkdown
 Remotes:
     max578/kernR,
-    biometryhub/ACI/aciR@de950a2c511c38e9a4642d88cf4783f150384bd1
+    biometryhub/ACI/acir@dbec5a1ee5f3ec9b8863260d2e35e52f02702b6c
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3

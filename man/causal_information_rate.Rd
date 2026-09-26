@@ -59,8 +59,8 @@ the details.}
 
 \item{epsilon}{Numeric vector -- the tolerance grid the exact functional
 averages the subjective range over, in nats. Defaults to the 129-point
-logarithmic grid \code{10^seq(-6, 0.5, length.out = 129)}, matching \code{aciR}'s
-default. Ignored by \code{functional = "objective"}.}
+logarithmic grid \code{10^seq(-6, 0.5, length.out = 129)}, matching \code{acir}'s
+former default. Ignored by \code{functional = "objective"}.}
 
 \item{margin}{Numeric scalar in \verb{(0, 1)} -- the fraction of its peak the
 profile must have decayed below by its last evaluated lag for the anchor
@@ -128,7 +128,7 @@ equations, retained as a cross-check on the smoother recursion and restricted
 to time-invariant models. The two share the quadrature and the reduction, so
 their agreement grades the recursion and not the range functional; the
 independent grading of the functional is the conformance suite against
-\code{aciR}.
+\code{acir}.
 
 An anchor whose future window runs past the end of the record cannot be
 resolved. The profile is then integrated over the lags the record does

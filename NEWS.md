@@ -79,20 +79,26 @@
 ## Testing
 
 * New conformance suite (`test-cir-conformance.R`) grading the ACI core
-  against `aciR` (`biometryhub/ACI`), a second implementation of the same
+  against `acir` (`biometryhub/ACI`), a second implementation of the same
   method whose numerical core is graded cell-by-cell against the method
   authors' MATLAB reference; that chain back to the authors' own code, not
   authorship, is what makes it an oracle here. The
   causal metric, the objective range, the subjective range at 129
   tolerances and the exact range are each graded on the nonlinear dyad
-  model. `aciR` joins `Suggests`; the tests skip when it is absent.
+  model. `acir` joins `Suggests`; the tests skip when it is absent.
+* The `acir` dependency follows `biometryhub/ACI`'s 2026-08-28 rename from
+  `aciR`: the `Remotes:` pin and every test call moved to the `acir` package
+  and its current function names (`aci_range()` for the old `aci_cir()`,
+  `aci_online()` for `aci_online_smoother()`), and the conformance suite's
+  `aci_metric()`/`aci_metric_pair()` calls take the more informed path
+  first, the convention `acir` now documents.
 * New quadrature suite (`test-cir-quadrature.R`) grading the lag grid, the
   convergence warning, the censoring contract and the grounding degradation,
   and now also the convergence-driven grounding degradation and the
   `orchestra_refusal`/`kalmix_abstention` classes on an unconverged
   `aci_fit`. `test-spread.R` grades the `orchestra_refusal`/`kalmix_refusal`
   classes on `ou_fit()`'s refusal.
-* The check workflow installs `aciR` from GitHub rather than dropping it from
+* The check workflow installs `acir` from GitHub rather than dropping it from
   `Suggests`, so the conformance grade runs in the clean room on all five
   platforms; `kernR` is still dropped, being private. `testthat`'s floor rises
   to 3.1.5 for `expect_no_warning()`.

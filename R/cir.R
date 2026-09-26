@@ -62,7 +62,7 @@
 #' to time-invariant models. The two share the quadrature and the reduction, so
 #' their agreement grades the recursion and not the range functional; the
 #' independent grading of the functional is the conformance suite against
-#' `aciR`.
+#' `acir`.
 #'
 #' An anchor whose future window runs past the end of the record cannot be
 #' resolved. The profile is then integrated over the lags the record does
@@ -103,8 +103,8 @@
 #'   the details.
 #' @param epsilon Numeric vector -- the tolerance grid the exact functional
 #'   averages the subjective range over, in nats. Defaults to the 129-point
-#'   logarithmic grid `10^seq(-6, 0.5, length.out = 129)`, matching `aciR`'s
-#'   default. Ignored by `functional = "objective"`.
+#'   logarithmic grid `10^seq(-6, 0.5, length.out = 129)`, matching `acir`'s
+#'   former default. Ignored by `functional = "objective"`.
 #' @param margin Numeric scalar in `(0, 1)` -- the fraction of its peak the
 #'   profile must have decayed below by its last evaluated lag for the anchor
 #'   to count as resolved. Defaults to `0.1`.
@@ -257,8 +257,8 @@ causal_information_rate <- function(model,
 #' The tolerance grid the exact functional averages over
 #'
 #' The 129-point logarithmic grid from `1e-6` to `10^0.5` nats, matching
-#' `aciR::aci_cir()`'s default. The reference implementation spans the same
-#' range with 513 points.
+#' `acir`'s former `aci_cir()` default (now `aci_range()`). The reference
+#' implementation spans the same range with 513 points.
 #'
 #' @returns A numeric vector.
 #' @noRd
@@ -619,7 +619,7 @@ causal_information_rate <- function(model,
 #'
 #' The efficient integral functional alone, kept as a named entry point because
 #' it is the quantity the conformance suite grades against
-#' `aciR::aci_cir()$objective`.
+#' `acir::aci_range(method = "l1_linf")$tau`.
 #'
 #' @param lag An increasing numeric vector of lags, including zero.
 #' @param divergence The matching divergence values, free of `NA`.
