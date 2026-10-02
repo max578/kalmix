@@ -49,10 +49,7 @@ states with kalmix* and *Assimilative causal inference with kalmix*.
 
 ## Installation
 
-The repository is private while the package is under development:
-
 ```r
-# requires access to the repository
 remotes::install_github("max578/kalmix", build_vignettes = TRUE)
 ```
 
