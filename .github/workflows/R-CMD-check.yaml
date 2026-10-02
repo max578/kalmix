@@ -21,9 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        # macOS (10x) and Windows (2x) runners are billed at multiples on a private
-        # repository and exhausted the account's monthly minutes on 2026-08-25;
-        # Linux-only until the repository is public or a release tag re-enables them.
+          - {os: macos-latest,   r: 'release'}
+          - {os: windows-latest, r: 'release'}
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,  r: 'release'}
           - {os: ubuntu-latest,  r: 'oldrel-1'}
@@ -34,14 +33,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      # kernR is a private sibling package used only as an optional test
-      # oracle (every use sits behind skip_if_not_installed). It is not on
-      # CRAN and this runner has no access to it, so it is dropped from
-      # Suggests before dependency resolution; the affected tests skip.
-      - name: Drop the private kernR test oracle from Suggests
-        run: perl -0pi -e 's/^[ \t]*kernR,\r?\n//m' DESCRIPTION
-        shell: bash
 
       - uses: r-lib/actions/setup-pandoc@v2
 
