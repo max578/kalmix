@@ -1,7 +1,9 @@
-# kalmix (development version)
+# kalmix 0.6.0
 
 ## Breaking changes
 
+* The grounding token for a verdict that is not grounded is now `"ungrounded"`;
+  the bracketed token written by 0.5.0 and earlier is still read as ungrounded.
 * **The objective causal influence range is normalised by the peak of the
   divergence profile, not by its value at lag zero.** This is the
   normalisation of Andreou, Chen and Bollt (2026), and the two agree only
@@ -39,12 +41,12 @@
   grid nor the engine could be reached through it.
 * `aci_fit` gains `censored` and `monotone` properties, `print()` marks a
   censored lead-time as a lower bound, and a censored anchor degrades the
-  grounding token to `[unverified]` with reason `"censored_horizon"`.
+  grounding token to `"ungrounded"` with reason `"censored_horizon"`.
 * `causal_information_rate()` returns a `converged` attribute alongside
   `censored`: `TRUE`/`FALSE` when the convergence check ran, `NA` when it
   did not apply (a resolved grid, or `tol = Inf`). `aci()` reads it: a
   lead-time whose quadrature has not converged now also degrades the
-  grounding token to `[unverified]`, with reason `"not_converged"`, and the
+  grounding token to `"ungrounded"`, with reason `"not_converged"`, and the
   returned `aci_fit` carries the `orchestra_refusal` / `kalmix_abstention`
   classes (the same convention `ou_fit()`'s refusal now uses, below) so a
   cross-member caller can recognise the lead-time as unreliable without
@@ -70,7 +72,7 @@
   censored or unconverged lead-time was classed, so an inadequate model
   whose lead-time happened to be reliable (or was not requested,
   `lead_time = FALSE`) returned an un-classed `aci_fit` carrying only the
-  `"[unverified]"` grounding string. The ordinary, expected
+  `"ungrounded"` grounding string. The ordinary, expected
   `"mechanism_unverified"` case -- an adequate model with no declared
   provenance -- is unaffected and still carries no abstention class; only
   the genuine adequacy failures now do. What is refused is unchanged, only
@@ -237,7 +239,7 @@
   a Ljung-Box whiteness test, a normalised-innovation-squared scale test and a
   Jarque-Bera normality test on the standardised one-step-ahead innovations --
   and reduces it to an adequacy verdict. `aci()` now grounds its read-out
-  through it: a model the innovations reject abstains with a `[unverified]`
+  through it: a model the innovations reject abstains with an ungrounded
   token (`grounding`, `grounding_reason` and `adequacy` are new `aci_fit`
   fields), and a verdict is labelled `"grounded"` only when an adequate model
   carries declared, dated mechanism provenance through the new `mechanism`
