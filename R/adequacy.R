@@ -9,7 +9,7 @@
 # model checking (Harvey 1989; Durbin and Koopman 2012) over the one-step-ahead
 # prediction errors and turns the result into an abstention: when the
 # standardised innovations are not white, not correctly scaled, or not Gaussian,
-# the model is inadequate and the causal read-out is labelled `[unverified]`.
+# the model is inadequate and the causal read-out is labelled `"ungrounded"`.
 #
 # Model adequacy is a necessary, not a sufficient, condition for a grounded
 # causal claim. Passing the diagnostics shows only that the model is a
@@ -19,18 +19,19 @@
 # apart: innovation_diagnostics() is the internal statistical check, and
 # the grounding token is set to "grounded" only when an adequate model is also
 # accompanied by declared, dated mechanism provenance. The default verdict is
-# "[unverified]".
+# "ungrounded".
 
 # Canonical grounding tokens ---------------------------------------------------
 
 # kalmix's grounding vocabulary is two tokens. "grounded": the claim has been
 # checked against the external authority that owns it, on a recorded date.
-# "[unverified]": everything else, including every self-consistent-but-
-# unchecked result. The square brackets on the unverified token are
-# load-bearing: they make an un-grounded label unmissable in a verdict line.
+# "ungrounded": everything else, including every self-consistent-but-
+# unchecked result. Readers treat every token other than "grounded" as
+# ungrounded, so the bracketed token written by kalmix 0.5.0 and earlier is
+# still read correctly.
 
 .grounding_grounded <- "grounded"
-.grounding_unverified <- "[unverified]"
+.grounding_unverified <- "ungrounded"
 
 #' Worst-case combination of grounding tokens
 #'
@@ -202,7 +203,7 @@ innov_diag <- S7::new_class(
 #'
 #' The diagnostics are what [aci()] uses to decide whether to trust its causal
 #' read-out: a model whose innovations reject it is not a credible
-#' data-generating mechanism, so the read-out is labelled `[unverified]` and the
+#' data-generating mechanism, so the read-out is labelled `"ungrounded"` and the
 #' decision abstains. Passing the diagnostics establishes self-consistency only,
 #' which is necessary but not sufficient for a grounded causal claim (see
 #' [aci()] on declaring mechanism provenance).
@@ -372,7 +373,7 @@ innovation_diagnostics <- function(object, lags = NULL, alpha = 0.05) {
 #' provenance into a grounding token and a short reason. An inadequate model
 #' abstains outright; an adequate model is grounded only when its provenance has
 #' been verified against an external authority, and is otherwise
-#' `[unverified]`.
+#' `"ungrounded"`.
 #'
 #' @param adequacy An [innov_diag].
 #' @param mechanism `NULL`, or a list with a `verified_on` `Date`.

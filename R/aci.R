@@ -54,7 +54,7 @@
 #' @param smoother The smoothing pass: an [rts_fit], or a [regime_smooth]
 #'   for a regime-switching model.
 #' @param grounding Character scalar -- the grounding token of the causal
-#'   verdict, `"grounded"` or `"[unverified]"`; see the token definitions in
+#'   verdict, `"grounded"` or `"ungrounded"`; see the token definitions in
 #'   [innovation_diagnostics()].
 #' @param grounding_reason Character scalar -- a short label for why the verdict
 #'   carries that token (`"grounded"`, `"mechanism_unverified"`,
@@ -92,7 +92,7 @@ aci_fit <- S7::new_class(
     smoother = S7::class_any,
     grounding = S7::new_property(
       class = S7::class_character,
-      default = "[unverified]"
+      default = "ungrounded"
     ),
     grounding_reason = S7::new_property(
       class = S7::class_character,
@@ -227,7 +227,7 @@ aci_fit <- S7::new_class(
 #' mechanism. That assumption is not taken on trust: the read-out is grounded
 #' through [innovation_diagnostics()], and a model whose standardised
 #' innovations are not white, not correctly scaled, or not Gaussian is declared
-#' inadequate, so the verdict abstains with a `[unverified]` grounding token
+#' inadequate, so the verdict abstains with an `"ungrounded"` grounding token
 #' and the returned [aci_fit] additionally carries the
 #' `c("orchestra_refusal", "kalmix_abstention")` classes (as does a fit whose
 #' adequacy could not be judged at all, or whose lead-time is censored or
@@ -236,7 +236,7 @@ aci_fit <- S7::new_class(
 #' parsing the grounding string. Passing the diagnostics establishes
 #' self-consistency only; the verdict is labelled `"grounded"` solely when an
 #' adequate model is accompanied by declared, dated `mechanism` provenance,
-#' and is `"[unverified]"` otherwise -- that ordinary, expected case is not
+#' and is `"ungrounded"` otherwise -- that ordinary, expected case is not
 #' itself abstained on.
 #'
 #' @param model An [ssm], or a list of two or more [ssm] regimes for a

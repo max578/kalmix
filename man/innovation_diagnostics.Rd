@@ -37,7 +37,7 @@ conservatively across the families by the Bonferroni rule.
 \details{
 The diagnostics are what \code{\link[=aci]{aci()}} uses to decide whether to trust its causal
 read-out: a model whose innovations reject it is not a credible
-data-generating mechanism, so the read-out is labelled \verb{[unverified]} and the
+data-generating mechanism, so the read-out is labelled \code{"ungrounded"} and the
 decision abstains. Passing the diagnostics establishes self-consistency only,
 which is necessary but not sufficient for a grounded causal claim (see
 \code{\link[=aci]{aci()}} on declaring mechanism provenance).

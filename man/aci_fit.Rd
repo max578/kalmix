@@ -12,7 +12,7 @@ aci_fit(
   dt = 1,
   filter = NULL,
   smoother = NULL,
-  grounding = "[unverified]",
+  grounding = "ungrounded",
   grounding_reason = NA_character_,
   adequacy = NULL,
   censored = FALSE,
@@ -45,7 +45,7 @@ in. Defaults to \code{1}, so the lead-time is in steps.}
 for a regime-switching model.}
 
 \item{grounding}{Character scalar -- the grounding token of the causal
-verdict, \code{"grounded"} or \code{"[unverified]"}; see the token definitions in
+verdict, \code{"grounded"} or \code{"ungrounded"}; see the token definitions in
 \code{\link[=innovation_diagnostics]{innovation_diagnostics()}}.}
 
 \item{grounding_reason}{Character scalar -- a short label for why the verdict

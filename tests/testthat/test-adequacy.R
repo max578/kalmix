@@ -2,7 +2,7 @@
 ##
 ## The innovation diagnostics are checked against models whose adequacy we know
 ## by construction (a correctly specified local level versus a frozen-state
-## misfit), and the grounding logic is checked as the [unverified] -> abstain
+## misfit), and the grounding logic is checked as the ungrounded -> abstain
 ## falsifier: an adequate model is still only self-consistent, a model the data
 ## reject abstains outright, and only declared, dated mechanism provenance lifts
 ## an adequate verdict to "grounded".
@@ -68,13 +68,13 @@ test_that("a correct model's standardised innovations are white and scaled", {
 
 test_that("aci() abstains under model inadequacy (the falsifier)", {
   ## Known DGP: the coupled OSSE ENSO series. The matched model is adequate and
-  ## carries the honest mechanism-unverified label; a frozen-state local level
+  ## carries the mechanism-unverified label; a frozen-state local level
   ## on the same series is inadequate and ACI abstains outright.
   sim <- .sim_enso_osse(n = 600L, kappa = 0.6, seed = 3L)
 
   matched <- aci(.enso_osse_model(sim, kappa = 0.6), sim$x, dt = sim$dt)
   expect_true(isTRUE(matched@adequacy@adequate))
-  expect_identical(matched@grounding, "[unverified]")
+  expect_identical(matched@grounding, "ungrounded")
   expect_identical(matched@grounding_reason, "mechanism_unverified")
   ## The ordinary, expected case -- adequate but not externally verified --
   ## is not itself a decline; it must NOT carry the abstention/refusal classes.
@@ -87,7 +87,7 @@ test_that("aci() abstains under model inadequacy (the falsifier)", {
   )
   abstained <- aci(frozen, sim$x, dt = sim$dt)
   expect_false(isTRUE(abstained@adequacy@adequate))
-  expect_identical(abstained@grounding, "[unverified]")
+  expect_identical(abstained@grounding, "ungrounded")
   expect_identical(abstained@grounding_reason, "model_inadequate")
 })
 
@@ -146,7 +146,7 @@ test_that("aci() grounds a verdict only with verified mechanism provenance", {
   model <- .enso_osse_model(sim, kappa = 0.6)
 
   ## No provenance: an adequate model is still only self-consistent.
-  expect_identical(aci(model, sim$x, dt = sim$dt)@grounding, "[unverified]")
+  expect_identical(aci(model, sim$x, dt = sim$dt)@grounding, "ungrounded")
 
   ## Declared, dated provenance against an external authority: grounded.
   grounded <- aci(
@@ -161,7 +161,7 @@ test_that("aci() grounds a verdict only with verified mechanism provenance", {
     model, sim$x, dt = sim$dt,
     mechanism = list(source = "claimed but unchecked")
   )
-  expect_identical(ungrounded@grounding, "[unverified]")
+  expect_identical(ungrounded@grounding, "ungrounded")
 })
 
 test_that("grounding helpers combine worst-case", {
@@ -169,9 +169,12 @@ test_that("grounding helpers combine worst-case", {
     kalmix:::.combine_grounding("grounded", "grounded"), "grounded"
   )
   expect_identical(
-    kalmix:::.combine_grounding("grounded", "[unverified]"), "[unverified]"
+    kalmix:::.combine_grounding("grounded", "ungrounded"), "ungrounded"
   )
-  expect_identical(kalmix:::.combine_grounding(), "[unverified]")
+  expect_identical(kalmix:::.combine_grounding(), "ungrounded")
+  expect_identical(
+    kalmix:::.combine_grounding("grounded", "[unverified]"), "ungrounded"
+  )
 
   expect_false(kalmix:::.mechanism_grounded(NULL))
   expect_false(kalmix:::.mechanism_grounded(list(source = "x")))

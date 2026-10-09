@@ -133,7 +133,7 @@ test_that("aci grounds a heavy-tailed series only under the t family", {
   level <- cumsum(rnorm(500, sd = 0.15))
   y <- level + rt(500, df = 4)
   fit_g <- aci(local_level(), y, lead_time = FALSE)
-  expect_identical(fit_g@grounding, "[unverified]")
+  expect_identical(fit_g@grounding, "ungrounded")
 
   est <- estimate_obs_df(local_level(), y)
   fit_t <- aci(local_level("student_t", est$df), y, lead_time = FALSE,

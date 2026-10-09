@@ -72,7 +72,7 @@ test_that("aci() returns a well-formed aci_fit", {
   expect_output(print(fit), "lead-time")
 })
 
-test_that("aci() lead_time = FALSE skips the rate and prints honestly", {
+test_that("aci() lead_time = FALSE skips the rate and says so in print", {
   sim <- .sim_enso_osse(n = 250L, kappa = 0.6, seed = 2L)
   fit <- aci(.enso_osse_model(sim, 0.6), sim$x, lead_time = FALSE)
   expect_true(is.na(fit@causal_information_rate))
@@ -223,7 +223,7 @@ test_that("real ENSO index: ACI runs on the NOAA ONI as an external oracle", {
   expect_lt(fit@lead_time, 5)
 
   ## The smoother should track the observed index (the observation maps the
-  ## first state directly), an honest sanity check on the real-data pass.
+  ## first state directly), a sanity check on the real-data pass.
   tracked <- stats::cor(fit@smoother@smoothed_mean[, 1L], oni)
   expect_gt(tracked, 0.7)
 })

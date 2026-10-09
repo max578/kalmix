@@ -98,7 +98,7 @@ test_that("a censored lead-time cannot carry a grounded verdict", {
     eval_points = 580L, max_lag = 120L, mechanism = mechanism
   ))
   expect_true(fit@censored)
-  expect_identical(fit@grounding, "[unverified]")
+  expect_identical(fit@grounding, "ungrounded")
   expect_identical(fit@grounding_reason, "censored_horizon")
   expect_output(print(fit), "censored")
 })
@@ -126,7 +126,7 @@ test_that("an unconverged lead-time cannot carry a grounded verdict", {
     )),
     "converged"
   )))
-  expect_identical(fit@grounding, "[unverified]")
+  expect_identical(fit@grounding, "ungrounded")
   expect_identical(fit@grounding_reason, "not_converged")
 })
 

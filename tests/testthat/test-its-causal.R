@@ -12,7 +12,7 @@ test_that("its_causal() recovers a known post-intervention lift", {
   expect_output(print(fit), "average effect")
 })
 
-test_that("its_causal() reports a null effect honestly", {
+test_that("its_causal() interval covers zero under a null effect", {
   ## Known DGP: a pure random walk with NO intervention effect. A correctly
   ## calibrated interval must straddle zero rather than assert an effect.
   withr::local_seed(2L)
