@@ -1,3 +1,9 @@
+# kalmix (development version)
+
+* The package has a logo.
+* README carries status badges and lists related packages.
+* CI runs lintr (report-only) and test coverage.
+
 # kalmix 0.6.0
 
 ## Breaking changes

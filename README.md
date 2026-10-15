@@ -1,4 +1,10 @@
-# kalmix
+# kalmix <img src="man/figures/logo.png" align="right" height="139" alt="kalmix logo" />
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/max578/kalmix/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/kalmix/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/max578/kalmix/graph/badge.svg)](https://app.codecov.io/gh/max578/kalmix)
+[![r-universe](https://max578.r-universe.dev/badges/kalmix)](https://max578.r-universe.dev/kalmix)
+<!-- badges: end -->
 
 A compact, dependency-light R toolkit for state-space modelling: exact
 linear-Gaussian filtering and smoothing, regime switching, hidden Markov
@@ -46,6 +52,25 @@ tail(round(fit@regime_prob, 2))     # posterior probability of the wild regime
 The vignettes walk through each verb family: *Getting started: state-space
 models with kalmix*, *Pairs trading with kalmix*, *Change-points and hidden
 states with kalmix* and *Assimilative causal inference with kalmix*.
+
+## Related packages
+
+- [KFAS](https://CRAN.R-project.org/package=KFAS) filters, smooths,
+  forecasts and simulates multivariate state-space models with Gaussian,
+  Poisson, binomial, negative binomial and gamma observations.
+- [depmixS4](https://CRAN.R-project.org/package=depmixS4) fits hidden
+  Markov models to mixed categorical and continuous time series.
+- [changepoint](https://CRAN.R-project.org/package=changepoint) finds
+  single and multiple changepoints in mean and variance with many
+  frequentist and non-parametric methods.
+- [CausalImpact](https://CRAN.R-project.org/package=CausalImpact)
+  estimates the effect of an intervention on a time series with Bayesian
+  structural time-series models.
+
+Each of these covers one of kalmix's areas in more depth. kalmix puts the
+linear-Gaussian filter, regime switching, hidden Markov models and
+change-points behind one small interface with three dependencies, and adds
+assimilative causal inference and the pairs-trading spread model.
 
 ## Installation
 

@@ -6,6 +6,8 @@
 \alias{kalmix-package}
 \title{kalmix: General State-Space Modelling, Filtering and Change-Point Detection}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 A compact, dependency-light toolkit for linear-Gaussian and discrete-state state-space models. Provides a vector-state Kalman filter and Rauch-Tung-Striebel smoother in closed form, a native Gaussian-mixture (regime-switching) filter, hidden Markov model filtering and Viterbi decoding, a likelihood-ratio change-point detector, and a minimal single-case interrupted-time-series causal contrast built on the smoother. Mean-reverting spread estimation for pairs trading is included as one documented application of the general machinery, building on the scalar Ornstein-Uhlenbeck spread model of Elliott, van der Hoek and Malcolm (2005) \doi{10.1080/14697680500149370}. Methods follow Kalman (1960) \doi{10.1115/1.3662552}, Rauch, Tung and Striebel (1965) \doi{10.2514/3.3166} and Durbin and Koopman (2012) \doi{10.1093/acprof:oso/9780199641178.001.0001}.
 }
 \seealso{
