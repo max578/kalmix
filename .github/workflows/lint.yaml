@@ -27,7 +27,12 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::lintr, local::.
+          # acir lives in a subdirectory of its repository; it is named here
+          # as R-CMD-check.yaml does, so pak can resolve it.
+          extra-packages: |
+            any::lintr
+            local::.
+            github::biometryhub/ACI/acir@dbec5a1ee5f3ec9b8863260d2e35e52f02702b6c
           needs: lint
 
       - name: Lint

@@ -31,7 +31,12 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::covr, any::xml2
+          # acir lives in a subdirectory of its repository; it is named here
+          # as R-CMD-check.yaml does, so pak can resolve it.
+          extra-packages: |
+            any::covr
+            any::xml2
+            github::biometryhub/ACI/acir@dbec5a1ee5f3ec9b8863260d2e35e52f02702b6c
           needs: coverage
 
       - name: Test coverage
