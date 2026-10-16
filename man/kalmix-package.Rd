@@ -14,6 +14,7 @@ A compact, dependency-light toolkit for linear-Gaussian and discrete-state state
 Useful links:
 \itemize{
   \item \url{https://github.com/max578/kalmix}
+  \item \url{https://max578.github.io/kalmix/}
   \item Report bugs at \url{https://github.com/max578/kalmix/issues}
 }
 
