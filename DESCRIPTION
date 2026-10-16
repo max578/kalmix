@@ -35,7 +35,7 @@ Description: A compact, dependency-light toolkit for linear-Gaussian and
     <doi:10.2514/3.3166> and Durbin and Koopman (2012)
     <doi:10.1093/acprof:oso/9780199641178.001.0001>.
 License: MIT + file LICENSE
-URL: https://github.com/max578/kalmix
+URL: https://github.com/max578/kalmix, https://max578.github.io/kalmix/
 BugReports: https://github.com/max578/kalmix/issues
 Encoding: UTF-8
 Language: en-AU
