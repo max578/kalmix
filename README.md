@@ -1,9 +1,11 @@
 # kalmix <img src="man/figures/logo.png" align="right" height="139" alt="kalmix logo" />
 
 <!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/max578/kalmix/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/kalmix/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/max578/kalmix/graph/badge.svg)](https://app.codecov.io/gh/max578/kalmix)
 [![r-universe](https://max578.r-universe.dev/badges/kalmix)](https://max578.r-universe.dev/kalmix)
+[![pkgdown](https://github.com/max578/kalmix/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/kalmix/)
 <!-- badges: end -->
 
 A compact, dependency-light R toolkit for state-space modelling: exact
